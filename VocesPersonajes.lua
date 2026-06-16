@@ -1,22 +1,16 @@
--- =========================================================
--- SERVICIOS Y VARIABLES GLOBALES
--- =========================================================
 local UserInputService = game:GetService("UserInputService")
 local SoundService = game:GetService("SoundService")
 local Players = game:GetService("Players")
-local LogService = game:GetService("LogService") 
-local Debris = game:GetService("Debris")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
+local LogService = game:GetService("LogService") -- Agregado para detectar la consola en móviles
 local localPlayer = Players.LocalPlayer
 
 math.randomseed(os.time())
 
--- =========================================================
--- PARTE 1: SISTEMA DE HABILIDADES POR ANIMACIÓN E INPUT
--- =========================================================
-
+---------------------------------------------------------
+-- 1. CONFIGURACIÓN DE PERSONAJES Y HABILIDADES
+---------------------------------------------------------
 local PERSONAJES_CONFIG = {
+    
     -- ================= SILVER =================
     Silver = {
         Levitacion = {
@@ -185,7 +179,9 @@ local PERSONAJES_CONFIG = {
     }
 }
 
--- Descarga y Mapeo Automático de Audios
+---------------------------------------------------------
+-- 2. DESCARGA Y MAPEO AUTOMÁTICO DE AUDIOS
+---------------------------------------------------------
 local function loadExternalAudio(fileName, githubRawUrl)
     if not isfile(fileName) then
         local audioData = game:HttpGet(githubRawUrl)
@@ -199,17 +195,22 @@ local contadorArchivos = 1
 
 for nombrePersonaje, habilidades in pairs(PERSONAJES_CONFIG) do
     for nombreHabilidad, datos in pairs(habilidades) do
+        
         AUDIOS_CARGADOS[nombreHabilidad] = {} 
+        
         for _, url in ipairs(datos.Audios) do
             local fileName = "custom_voice_" .. contadorArchivos .. ".mp3"
             local assetCargado = loadExternalAudio(fileName, url)
+            
             table.insert(AUDIOS_CARGADOS[nombreHabilidad], assetCargado)
             contadorArchivos = contadorArchivos + 1
         end
     end
 end
 
--- Funciones Base del Reproductor (Código 1)
+---------------------------------------------------------
+-- 3. REPRODUCTOR DE AUDIO
+---------------------------------------------------------
 local function playSound(assetPath)
     local sound = Instance.new("Sound")
     sound.SoundId = assetPath
@@ -225,15 +226,20 @@ local function playRandomSound(assetTable)
     playSound(selectedAsset)
 end
 
--- Captura de la Intención del Jugador (Código 1)
+---------------------------------------------------------
+-- 4. CAPTURAR LA INTENCIÓN DEL JUGADOR (PC Y MÓVILES)
+---------------------------------------------------------
 local ultimaHabilidadIntentada = nil
 
+-- DETECCIÓN EN PC (Teclado)
 UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
+    
     for _, habilidades in pairs(PERSONAJES_CONFIG) do
         for nombreHabilidad, datos in pairs(habilidades) do
             if datos.Tecla and (input.KeyCode == datos.Tecla or input.UserInputType == datos.Tecla) then
                 ultimaHabilidadIntentada = nombreHabilidad
+                
                 task.delay(2, function()
                     if ultimaHabilidadIntentada == nombreHabilidad then
                         ultimaHabilidadIntentada = nil
@@ -244,8 +250,10 @@ UserInputService.InputBegan:Connect(function(input, gp)
     end
 end)
 
+-- DETECCIÓN EN MÓVIL (Por mensajes de la consola)
 LogService.MessageOut:Connect(function(message, messageType)
     local textoConsola = string.match(message, "%d+") 
+    
     if textoConsola == "1" then
         ultimaHabilidadIntentada = "Levitacion"
         task.delay(2, function()
@@ -263,7 +271,9 @@ LogService.MessageOut:Connect(function(message, messageType)
     end
 end)
 
--- Detector de Animaciones (Código 1)
+---------------------------------------------------------
+-- 5. DETECCIÓN EXACTA (ANIMACIONES)
+---------------------------------------------------------
 local function setupCharacter(character)
     local humanoid = character:WaitForChild("Humanoid", 5)
     if not humanoid then return end
@@ -277,6 +287,7 @@ local function setupCharacter(character)
         
         for _, habilidades in pairs(PERSONAJES_CONFIG) do
             for nombreHabilidad, datos in pairs(habilidades) do
+                
                 if datos.AnimId == currentAnimId then
                     if datos.Tecla then
                         if ultimaHabilidadIntentada == nombreHabilidad then
@@ -289,6 +300,7 @@ local function setupCharacter(character)
                         return
                     end
                 end
+                
             end
         end
     end)
@@ -296,64 +308,3 @@ end
 
 if localPlayer.Character then setupCharacter(localPlayer.Character) end
 localPlayer.CharacterAdded:Connect(setupCharacter)
-
-
--- =========================================================
--- PARTE 2: SISTEMA INDEPENDIENTE DE AMY (POR EVENTO REMOTO)
--- =========================================================
-
-local AMY_SOUNDS = {
-    "rbxassetid://140001780364761",
-    "rbxassetid://102039585700078",
-    "rbxassetid://94286709781934",
-    "rbxassetid://131050409007398",
-    "rbxassetid://109414274716312",
-    "rbxassetid://138002390180472",
-}
-
-local sfxGroup = ReplicatedStorage.ClientAssets.Sounds.sfx
-
-local function iAmAmy()
-    local playersFolder = workspace:FindFirstChild("Players")
-    if not playersFolder then return false end
-    local me = playersFolder:FindFirstChild(localPlayer.Name)
-    if not me then return false end
-    return me:GetAttribute("Character") == "Amy"
-end
-
-local function findMyRoot()
-    local playersFolder = workspace:FindFirstChild("Players")
-    if not playersFolder then return nil end
-    local me = playersFolder:FindFirstChild(localPlayer.Name)
-    if not me then return nil end
-    return me:FindFirstChild("HumanoidRootPart") or me
-end
-
-local function playAmy()
-    local parent = findMyRoot() or workspace
-    local sound = Instance.new("Sound")
-    sound.SoundId = AMY_SOUNDS[math.random(1, #AMY_SOUNDS)]
-    sound.Volume = 1
-    sound.RollOffMaxDistance = 255
-    sound.RollOffMinDistance = 67
-    sound.SoundGroup = sfxGroup
-    sound.Parent = parent
-    sound:Play()
-    Debris:AddItem(sound, 10)
-end
-
-local Remotes = ReplicatedStorage:WaitForChild("Remotes")
-Remotes:WaitForChild("ScoreEvent").OnClientEvent:Connect(function(action, ...)
-    if action ~= "Stuns" then return end
-    if not iAmAmy() then return end
-    -- Se activa independientemente de las pulsaciones de teclado del Código 1
-    playAmy()
-end)
-
-print("Sistema de habilidades y voces de Amy cargados correctamente")
-if localPlayer.Character then 
-    setupCharacter(localPlayer.Character) 
-end
-localPlayer.CharacterAdded:Connect(setupCharacter)
-
-print("Sistema de audios custom cargado correctamente.")
