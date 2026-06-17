@@ -271,6 +271,35 @@ LogService.MessageOut:Connect(function(message, messageType)
     end
 end)
 
+local function descargarAudioSeguro(ruta, url)
+    -- Crear la carpeta contenedora si no existe
+    if not isfolder("MusicCache") then makefolder("MusicCache") end
+
+    -- Si el archivo ya existe y tiene un tamaño decente, no lo vuelve a descargar mal
+    if isfile(ruta) and #readfile(ruta) > 10000 then 
+        return 
+    end
+
+    local exito, resultado
+    local intentos = 0
+    
+    -- Intenta descargarlo hasta 3 veces si falla o viene vacío
+    while intentos < 3 do
+        exito, resultado = pcall(function()
+            return game:HttpGet(url)
+        end)
+        
+        if exito and resultado and #resultado > 10000 then
+            writefile(ruta, resultado)
+            break
+        end
+        intentos = intentos + 1
+        task.wait(1) -- Espera un segundo antes de reintentar
+    end
+end
+
+-- Ejemplo de uso dentro de tu VocesPersonajes.lua:
+-- descargarAudioSeguro("MusicCache/SonicSolo.mp3", "https://enlace_directo_al_audio.mp3")
 ---------------------------------------------------------
 -- 5. DETECCIÓN EXACTA (ANIMACIONES)
 ---------------------------------------------------------
