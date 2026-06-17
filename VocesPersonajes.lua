@@ -1,7 +1,8 @@
 local UserInputService = game:GetService("UserInputService")
 local SoundService = game:GetService("SoundService")
 local Players = game:GetService("Players")
-local LogService = game:GetService("LogService") -- Agregado para detectar la consola en móviles
+local LogService = game:GetService("LogService")
+local Debris = game:GetService("Debris") -- Usado para limpieza de memoria
 local localPlayer = Players.LocalPlayer
 
 math.randomseed(os.time())
@@ -10,11 +11,10 @@ math.randomseed(os.time())
 -- 1. CONFIGURACIÓN DE PERSONAJES Y HABILIDADES
 ---------------------------------------------------------
 local PERSONAJES_CONFIG = {
-    
     -- ================= SILVER =================
     Silver = {
         Levitacion = {
-            AnimId = "rbxassetid://82159522474011",
+            AnimId = "82159522474011",
             Tecla = Enum.KeyCode.E,
             Audios = {
                 "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/Dialogos/Silver/levitacion/catch.mp3",
@@ -27,7 +27,7 @@ local PERSONAJES_CONFIG = {
             }
         },
         Rocas = {
-            AnimId = "rbxassetid://138214151277474",
+            AnimId = "138214151277474",
             Tecla = Enum.KeyCode.Q,
             Audios = {
                 "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/Dialogos/Silver/rocas/dodge-this.mp3",
@@ -39,11 +39,10 @@ local PERSONAJES_CONFIG = {
             }
         }
     },
-
     -- ================= BLAZE =================
     Blaze = {
         Habilidad1_Patada = {
-            AnimId = "rbxassetid://119187043145187", 
+            AnimId = "119187043145187", 
             Audios = {
                 "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/Dialogos/Blaze/patada/ataque.mp3",
                 "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/Dialogos/Blaze/patada/ataque1.mp3",
@@ -54,7 +53,7 @@ local PERSONAJES_CONFIG = {
             }
         },
         Habilidad1_Patada2 = {
-            AnimId = "rbxassetid://122240466520535", 
+            AnimId = "122240466520535", 
             Audios = {
                 "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/Dialogos/Blaze/patada/ataque.mp3",
                 "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/Dialogos/Blaze/patada/ataque1.mp3",
@@ -65,13 +64,13 @@ local PERSONAJES_CONFIG = {
             }
         },
         Habilidad2_Solflame= {
-            AnimId = "rbxassetid://133708999826570", 
+            AnimId = "133708999826570", 
             Audios = {
                 "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/Dialogos/Blaze/impulso/xd.mp3"
             }
         },
         Habilidad3_lanza = {
-            AnimId = "rbxassetid://116847882712823", 
+            AnimId = "116847882712823", 
             Audios = {
                 "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/Dialogos/Blaze/lanza/1.mp3",
                 "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/Dialogos/Blaze/lanza/2.mp3",
@@ -83,11 +82,10 @@ local PERSONAJES_CONFIG = {
             }
         }
     },
-
     -- ================= SONIC =================
     Sonic = {
         Habilidad_spindash = {
-            AnimId = "rbxassetid://90142463830046",
+            AnimId = "90142463830046",
             Audios = {
                 "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/Dialogos/Sonic/spindash/break.mp3",
 				"https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/Dialogos/Sonic/spindash/cant-stop.mp3",
@@ -101,7 +99,7 @@ local PERSONAJES_CONFIG = {
             }
         },
         Habilidad_peelout = {
-            AnimId = "rbxassetid://122414915357020",
+            AnimId = "122414915357020",
 			DelayAudio = 3,
             Audios = {
                 "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/Dialogos/Sonic/peelout/careful-buddy.mp3",
@@ -117,11 +115,10 @@ local PERSONAJES_CONFIG = {
             }
         }
     },
-
     -- ================= METAL SONIC =================
     MetalSonic = {
         Habilidad_charge = {
-            AnimId = "rbxassetid://105904515272751",
+            AnimId = "105904515272751",
             Audios = {
                 "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/Dialogos/metalSonic/crush.mp3",
 				"https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/Dialogos/metalSonic/laughing.mp3",
@@ -131,11 +128,10 @@ local PERSONAJES_CONFIG = {
             }
         }
     },
-
     -- ================= CREAM =================
     Cream = {
         Habilidad_curacion = {
-            AnimId = "rbxassetid://135664457733929",
+            AnimId = "135664457733929",
             Audios = {
                 "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES//main/Dialogos/Cream/be-very-careful.mp3",
 				"https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES//main/Dialogos/Cream/care.mp3",
@@ -149,11 +145,10 @@ local PERSONAJES_CONFIG = {
             }
         }
     },
-
     -- ================= KNUCKLES =================
     Knuckles = {
         Habilidad_golpe = {
-            AnimId = "rbxassetid://81392931271245",
+            AnimId = "81392931271245",
             Audios = {
                 "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/Dialogos/Knuckles/Golpe/alright.mp3",
 				"https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/Dialogos/Knuckles/Golpe/can-t-deal.mp3",
@@ -165,7 +160,7 @@ local PERSONAJES_CONFIG = {
             }
         },
         Habilidad_counter = {
-            AnimId = "rbxassetid://110853733886406",
+            AnimId = "110853733886406",
             Audios = {
                 "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/Dialogos/Knuckles/counter/doing.mp3",
 				"https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/Dialogos/Knuckles/counter/not-strong.mp3",
@@ -180,33 +175,63 @@ local PERSONAJES_CONFIG = {
 }
 
 ---------------------------------------------------------
--- 2. DESCARGA Y MAPEO AUTOMÁTICO DE AUDIOS
+-- 2. DESCARGA SEGURA Y MAPEO DE AUDIOS
 ---------------------------------------------------------
-local function loadExternalAudio(fileName, githubRawUrl)
-    if not isfile(fileName) then
-        local audioData = game:HttpGet(githubRawUrl)
-        writefile(fileName, audioData)
+if not isfolder("MusicCache") then makefolder("MusicCache") end
+
+local function descargarAudioSeguro(fileName, url)
+    local ruta = "MusicCache/" .. fileName
+    
+    -- Verificar que el archivo existe y no está corrupto/vacío
+    if isfile(ruta) and #readfile(ruta) > 500 then 
+        return getcustomasset(ruta) 
     end
-    return getcustomasset(fileName)
+
+    local exito, resultado
+    local intentos = 0
+    
+    -- Intenta descargarlo hasta 3 veces
+    while intentos < 3 do
+        exito, resultado = pcall(function()
+            return game:HttpGet(url)
+        end)
+        
+        if exito and resultado and #resultado > 500 then
+            writefile(ruta, resultado)
+            return getcustomasset(ruta)
+        end
+        intentos = intentos + 1
+        task.wait(0.5) -- Espera antes del reintento para evitar bloqueos
+    end
+    
+    warn("No se pudo descargar el audio: " .. url)
+    return nil
 end
 
 local AUDIOS_CARGADOS = {}
 local contadorArchivos = 1
 
-for nombrePersonaje, habilidades in pairs(PERSONAJES_CONFIG) do
-    for nombreHabilidad, datos in pairs(habilidades) do
-        
-        AUDIOS_CARGADOS[nombreHabilidad] = {} 
-        
-        for _, url in ipairs(datos.Audios) do
-            local fileName = "custom_voice_" .. contadorArchivos .. ".mp3"
-            local assetCargado = loadExternalAudio(fileName, url)
+-- Corrutina para no congelar el juego mientras descarga los 80 audios
+task.spawn(function()
+    for nombrePersonaje, habilidades in pairs(PERSONAJES_CONFIG) do
+        for nombreHabilidad, datos in pairs(habilidades) do
+            AUDIOS_CARGADOS[nombreHabilidad] = {} 
             
-            table.insert(AUDIOS_CARGADOS[nombreHabilidad], assetCargado)
-            contadorArchivos = contadorArchivos + 1
+            for _, url in ipairs(datos.Audios) do
+                local fileName = "voice_cache_" .. contadorArchivos .. ".mp3"
+                local assetCargado = descargarAudioSeguro(fileName, url)
+                
+                if assetCargado then
+                    table.insert(AUDIOS_CARGADOS[nombreHabilidad], assetCargado)
+                end
+                
+                contadorArchivos = contadorArchivos + 1
+                task.wait(0.05) -- Pausa mínima para no saturar los Rate Limits de GitHub
+            end
         end
     end
-end
+    print("¡Todos los audios han sido cargados correctamente!")
+end)
 
 ---------------------------------------------------------
 -- 3. REPRODUCTOR DE AUDIO
@@ -217,21 +242,23 @@ local function playSound(assetPath)
     sound.Volume = 1
     sound.Parent = SoundService 
     sound:Play()
+    
+    -- Se elimina cuando termina, o con Debris como respaldo seguro
     sound.Ended:Connect(function() sound:Destroy() end)
+    Debris:AddItem(sound, 10) 
 end
 
 local function playRandomSound(assetTable)
-    if #assetTable == 0 then return end 
+    if not assetTable or #assetTable == 0 then return end 
     local selectedAsset = assetTable[math.random(1, #assetTable)]
     playSound(selectedAsset)
 end
 
 ---------------------------------------------------------
--- 4. CAPTURAR LA INTENCIÓN DEL JUGADOR (PC Y MÓVILES)
+-- 4. CAPTURAR LA INTENCIÓN DEL JUGADOR
 ---------------------------------------------------------
 local ultimaHabilidadIntentada = nil
 
--- DETECCIÓN EN PC (Teclado)
 UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
     
@@ -250,59 +277,28 @@ UserInputService.InputBegan:Connect(function(input, gp)
     end
 end)
 
--- DETECCIÓN EN MÓVIL (Por mensajes de la consola)
 LogService.MessageOut:Connect(function(message, messageType)
     local textoConsola = string.match(message, "%d+") 
     
     if textoConsola == "1" then
         ultimaHabilidadIntentada = "Levitacion"
-        task.delay(2, function()
-            if ultimaHabilidadIntentada == "Levitacion" then
-                ultimaHabilidadIntentada = nil
-            end
-        end)
     elseif textoConsola == "2" then
         ultimaHabilidadIntentada = "Rocas"
-        task.delay(2, function()
-            if ultimaHabilidadIntentada == "Rocas" then
-                ultimaHabilidadIntentada = nil
-            end
-        end)
     end
+    
+    task.delay(2, function()
+        ultimaHabilidadIntentada = nil
+    end)
 end)
 
-local function descargarAudioSeguro(ruta, url)
-    -- Crear la carpeta contenedora si no existe
-    if not isfolder("MusicCache") then makefolder("MusicCache") end
-
-    -- Si el archivo ya existe y tiene un tamaño decente, no lo vuelve a descargar mal
-    if isfile(ruta) and #readfile(ruta) > 10000 then 
-        return 
-    end
-
-    local exito, resultado
-    local intentos = 0
-    
-    -- Intenta descargarlo hasta 3 veces si falla o viene vacío
-    while intentos < 3 do
-        exito, resultado = pcall(function()
-            return game:HttpGet(url)
-        end)
-        
-        if exito and resultado and #resultado > 10000 then
-            writefile(ruta, resultado)
-            break
-        end
-        intentos = intentos + 1
-        task.wait(1) -- Espera un segundo antes de reintentar
-    end
+---------------------------------------------------------
+-- 5. DETECCIÓN EXACTA (ANIMACIONES) - ARREGLADO
+---------------------------------------------------------
+-- Extrae solo el ID numérico ignorando "rbxassetid://" o "http://"
+local function extraerId(texto)
+    return string.match(tostring(texto), "%d+")
 end
 
--- Ejemplo de uso dentro de tu VocesPersonajes.lua:
--- descargarAudioSeguro("MusicCache/SonicSolo.mp3", "https://enlace_directo_al_audio.mp3")
----------------------------------------------------------
--- 5. DETECCIÓN EXACTA (ANIMACIONES)
----------------------------------------------------------
 local function setupCharacter(character)
     local humanoid = character:WaitForChild("Humanoid", 5)
     if not humanoid then return end
@@ -312,12 +308,16 @@ local function setupCharacter(character)
 
     animator.AnimationPlayed:Connect(function(animTrack)
         if not animTrack.Animation then return end
-        local currentAnimId = animTrack.Animation.AnimationId
+        
+        -- Obtiene solo los números de la animación que se está reproduciendo
+        local currentAnimId = extraerId(animTrack.Animation.AnimationId)
+        if not currentAnimId then return end
         
         for _, habilidades in pairs(PERSONAJES_CONFIG) do
             for nombreHabilidad, datos in pairs(habilidades) do
                 
-                if datos.AnimId == currentAnimId then
+                -- Compara los puros números en lugar del string completo
+                if extraerId(datos.AnimId) == currentAnimId then
                     if datos.Tecla then
                         if ultimaHabilidadIntentada == nombreHabilidad then
                             playRandomSound(AUDIOS_CARGADOS[nombreHabilidad])
