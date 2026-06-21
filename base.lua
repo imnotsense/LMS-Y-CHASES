@@ -5,7 +5,7 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
 local WhitelistUsuarios = {
-    ["TicoNutri"]=true, ["Metalix_24"]=true, ["periquitoRolox"]=true
+    ["TicoNutria"]=true, ["Metalix_24"]=true, ["periquitoRolox"]=true
 } 
 local UsuariosBaneados = {["UsuarioMalo1"]=true, ["UsuarioMalo2"]=true} 
 
