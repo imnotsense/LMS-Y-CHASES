@@ -1,4 +1,48 @@
 -- ============================================================================
+-- SISTEMA DE WHITELIST (ACCESO PRIVADO Y BANEOS)
+-- ============================================================================
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local WhitelistUsuarios = {
+    ["TicoNutria"]=true, ["Metalix_24"]=true, ["periquitoRolox"]=true
+} 
+local UsuariosBaneados = {["UsuarioMalo1"]=true, ["UsuarioMalo2"]=true} 
+
+local miNombre = LocalPlayer.Name
+if UsuariosBaneados[miNombre] then return end
+
+if not WhitelistUsuarios[miNombre] then
+    local CoreGui = game:GetService("CoreGui")
+    local sg = Instance.new("ScreenGui")
+    sg.Name = "BloqueoAcceso"
+    sg.IgnoreGuiInset = true
+    pcall(function() sg.Parent = CoreGui end)
+    if not sg.Parent then sg.Parent = LocalPlayer:WaitForChild("PlayerGui") end
+ 
+    local bg = Instance.new("Frame", sg)
+    bg.Size = UDim2.new(1, 0, 1, 0)
+    bg.BackgroundColor3 = Color3.new(0, 0, 0) 
+    bg.BorderSizePixel = 0
+    
+    local txt = Instance.new("TextLabel", bg)
+    txt.Size = UDim2.new(1, 0, 1, 0)
+    txt.BackgroundTransparency = 1
+    txt.TextColor3 = Color3.fromRGB(255, 50, 50)
+    txt.TextScaled = true
+    txt.Font = Enum.Font.GothamBlack
+    txt.Text = "SIN PERMISOS\n\nEste script es de uso privado"
+    
+    local wlSound = Instance.new("Sound", bg)
+    wlSound.SoundId = "rbxassetid://138081509" 
+    wlSound.Looped = true
+    wlSound.Volume = 2
+    wlSound:Play()
+
+    return
+end
+
+-- ============================================================================
 -- SERVICIOS Y REQUISITOS GENERALES
 -- ============================================================================
 local SoundService = game:GetService("SoundService")
@@ -1101,50 +1145,6 @@ local function manejarChases(valor)
             end
         end
     end
-end
-
--- ============================================================================
--- SISTEMA DE WHITELIST (ACCESO PRIVADO Y BANEOS)
--- ============================================================================
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-
-local WhitelistUsuarios = {
-    ["TicoNutri"]=true, ["Metalix_24"]=true, ["periquitoRolox"]=true
-} 
-local UsuariosBaneados = {["UsuarioMalo1"]=true, ["UsuarioMalo2"]=true} 
-
-local miNombre = LocalPlayer.Name
-if UsuariosBaneados[miNombre] then return end
-
-if not WhitelistUsuarios[miNombre] then
-    local CoreGui = game:GetService("CoreGui")
-    local sg = Instance.new("ScreenGui")
-    sg.Name = "BloqueoAcceso"
-    sg.IgnoreGuiInset = true
-    pcall(function() sg.Parent = CoreGui end)
-    if not sg.Parent then sg.Parent = LocalPlayer:WaitForChild("PlayerGui") end
- 
-    local bg = Instance.new("Frame", sg)
-    bg.Size = UDim2.new(1, 0, 1, 0)
-    bg.BackgroundColor3 = Color3.new(0, 0, 0) 
-    bg.BorderSizePixel = 0
-    
-    local txt = Instance.new("TextLabel", bg)
-    txt.Size = UDim2.new(1, 0, 1, 0)
-    txt.BackgroundTransparency = 1
-    txt.TextColor3 = Color3.fromRGB(255, 50, 50)
-    txt.TextScaled = true
-    txt.Font = Enum.Font.GothamBlack
-    txt.Text = "SIN PERMISOS\n\nEste script es de uso privado"
-    
-    local wlSound = Instance.new("Sound", bg)
-    wlSound.SoundId = "rbxassetid://138081509" 
-    wlSound.Looped = true
-    wlSound.Volume = 2
-    wlSound:Play()
-
-    return
 end
 
 -- ==========================================
