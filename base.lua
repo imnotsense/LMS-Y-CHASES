@@ -226,7 +226,7 @@ local UIGradientColorDefault = ColorSequence.new{
 
 local QuickEmoteBtn = Instance.new("TextButton")
 QuickEmoteBtn.Size = UDim2.new(0, 50, 0, 50)
-QuickEmoteBtn.Position = UDim2.new(1, -70, 0, 25)
+QuickEmoteBtn.Position = UDim2.new(0, 80, 1, -80)
 QuickEmoteBtn.BackgroundColor3 = Color3.fromRGB(20, 15, 30)
 QuickEmoteBtn.BackgroundTransparency = 0.1
 QuickEmoteBtn.Text = "🕺"
@@ -324,7 +324,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -70, 1, 0)
 Title.Position = UDim2.new(0, 20, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "FROSTTER CONTROL (Abrir con R)"
+Title.Text = "FROSTTER CONTROL (Abrir con K)"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 16
@@ -345,40 +345,6 @@ Instance.new("UICorner", CloseButton).CornerRadius = UDim.new(0, 12)
 
 CloseButton.MouseEnter:Connect(function() TweenService:Create(CloseButton, TransicionRapida, {BackgroundColor3 = Color3.fromRGB(255, 100, 120)}):Play() end)
 CloseButton.MouseLeave:Connect(function() TweenService:Create(CloseButton, TransicionRapida, {BackgroundColor3 = Color3.fromRGB(255, 50, 80)}):Play() end)
-
-local TabDropdownBtn = Instance.new("TextButton")
-TabDropdownBtn.Size = UDim2.new(1, -40, 0, 42)
-TabDropdownBtn.Position = UDim2.new(0, 20, 0, 60)
-TabDropdownBtn.BackgroundColor3 = Color3.fromRGB(40, 30, 55)
-TabDropdownBtn.Text = "Pestaña: Ajustes ▼"
-TabDropdownBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-TabDropdownBtn.Font = Enum.Font.GothamBold
-TabDropdownBtn.TextSize = 14
-TabDropdownBtn.AutoButtonColor = false
-TabDropdownBtn.Parent = MainFrame
-Instance.new("UICorner", TabDropdownBtn).CornerRadius = UDim.new(0, 10)
-local TabDropUIStroke = Instance.new("UIStroke", TabDropdownBtn)
-TabDropUIStroke.Color = ColorAcento2
-TabDropUIStroke.Thickness = 1
-
-local TabDropdownList = Instance.new("ScrollingFrame")
-TabDropdownList.Size = UDim2.new(1, -40, 0, 160)
-TabDropdownList.Position = UDim2.new(0, 20, 0, 105)
-TabDropdownList.BackgroundColor3 = Color3.fromRGB(20, 15, 25)
-TabDropdownList.BorderSizePixel = 0
-TabDropdownList.ZIndex = 20
-TabDropdownList.Visible = false
-TabDropdownList.CanvasSize = UDim2.new(0, 0, 0, 0)
-TabDropdownList.AutomaticCanvasSize = Enum.AutomaticSize.Y
-TabDropdownList.ScrollBarThickness = 4
-TabDropdownList.ScrollBarImageColor3 = ColorAcento1
-TabDropdownList.Parent = MainFrame
-Instance.new("UICorner", TabDropdownList).CornerRadius = UDim.new(0, 10)
-Instance.new("UIStroke", TabDropdownList).Color = ColorAcento2
-
-local TabDropdownLayout = Instance.new("UIListLayout")
-TabDropdownLayout.SortOrder = Enum.SortOrder.LayoutOrder
-TabDropdownLayout.Parent = TabDropdownList
 
 local function CreateScroll()
     local scroll = Instance.new("ScrollingFrame")
@@ -431,33 +397,58 @@ local function updateTabs(activeFrame)
     EmotesFrame.Visible = activeFrame == "Emotes"
     CustomFrame.Visible = activeFrame == "Personalizar"
     if EsDesarrollador then DevFrame.Visible = activeFrame == "Dev" end
-    TabDropdownBtn.Text = "Pestaña: " .. activeFrame .. " ▼"
-    TabDropdownList.Visible = false
 end
+
+local TabSelectionBox = Instance.new("Frame")
+TabSelectionBox.Size = UDim2.new(1, -40, 0, 36)
+TabSelectionBox.Position = UDim2.new(0, 20, 0, 60)
+TabSelectionBox.BackgroundColor3 = Color3.fromRGB(20, 15, 25)
+TabSelectionBox.BorderSizePixel = 0
+TabSelectionBox.Parent = MainFrame
+Instance.new("UICorner", TabSelectionBox).CornerRadius = UDim.new(0, 8)
+Instance.new("UIStroke", TabSelectionBox).Color = ColorAcento2
+
+local TabLayout = Instance.new("UIListLayout")
+TabLayout.FillDirection = Enum.FillDirection.Horizontal
+TabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+TabLayout.Parent = TabSelectionBox
 
 local listaPestanas = {"Ajustes", "Emotes", "Personalizar"}
 if EsDesarrollador then table.insert(listaPestanas, "Dev") end
 
+local numTabs = #listaPestanas
 for i, tabName in ipairs(listaPestanas) do
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 36)
+    btn.Size = UDim2.new(1/numTabs, 0, 1, 0)
     btn.BackgroundColor3 = Color3.fromRGB(20, 15, 25)
+    btn.BackgroundTransparency = 1
     btn.Text = tabName
-    btn.TextColor3 = Color3.fromRGB(220, 210, 230)
+    btn.TextColor3 = Color3.fromRGB(150, 140, 160)
     btn.Font = Enum.Font.GothamMedium
     btn.TextSize = 12
-    btn.ZIndex = 21
     btn.AutoButtonColor = false
-    btn.Parent = TabDropdownList
+    btn.Parent = TabSelectionBox
     btn.LayoutOrder = i
     
-    btn.MouseEnter:Connect(function() TweenService:Create(btn, TransicionRapida, {BackgroundColor3 = Color3.fromRGB(60, 40, 80)}):Play() end)
-    btn.MouseLeave:Connect(function() TweenService:Create(btn, TransicionRapida, {BackgroundColor3 = Color3.fromRGB(20, 15, 25)}):Play() end)
-    btn.MouseButton1Click:Connect(function() updateTabs(tabName) end)
+    btn.MouseButton1Click:Connect(function() 
+        updateTabs(tabName) 
+        for _, child in ipairs(TabSelectionBox:GetChildren()) do
+            if child:IsA("TextButton") then
+                child.TextColor3 = Color3.fromRGB(150, 140, 160)
+                child.Font = Enum.Font.GothamMedium
+            end
+        end
+        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        btn.Font = Enum.Font.GothamBold
+    end)
 end
 
-TabDropdownBtn.MouseButton1Click:Connect(function() TabDropdownList.Visible = not TabDropdownList.Visible end)
 updateTabs("Ajustes")
+if TabSelectionBox:FindFirstChildWhichIsA("TextButton") then
+    local primerBtn = TabSelectionBox:FindFirstChildWhichIsA("TextButton")
+    primerBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    primerBtn.Font = Enum.Font.GothamBold
+end
 
 local EmoteHeader = Instance.new("Frame")
 EmoteHeader.Size = UDim2.new(1, 0, 0, 45)
@@ -661,7 +652,7 @@ end
 
 UserInputService.InputBegan:Connect(function(input, chat)
     if chat then return end
-    if input.KeyCode == Enum.KeyCode.T then toggleUltimoEmote() end
+    if input.KeyCode == Enum.KeyCode.R then toggleUltimoEmote() end
     if input.KeyCode == Enum.KeyCode.X then stopCurrentEmote() end
 end)
 
@@ -698,7 +689,7 @@ local function cargarEmotesPersonaje(nombrePersonaje)
             
             btn.MouseButton1Click:Connect(function() 
                 lastSelectedEmote = emoteData
-                SelectedEmoteLabel.Text = emoteData.Name .. " (Presiona T)"
+                SelectedEmoteLabel.Text = emoteData.Name .. " (Presiona R)"
                 QuickEmoteBtn.Text = "▶️"
                 QuickEmoteStroke.Color = Color3.fromRGB(100, 255, 100)
                 
@@ -800,12 +791,12 @@ alternarPanel(true)
 CloseButton.MouseButton1Click:Connect(function() alternarPanel(false) end)
 UserInputService.InputBegan:Connect(function(input, chat)
     if chat then return end
-    if input.KeyCode == Enum.KeyCode.R then alternarPanel() end 
+    if input.KeyCode == Enum.KeyCode.K then alternarPanel() end 
 end)
 
 local FloatingMenuBtn = Instance.new("TextButton")
 FloatingMenuBtn.Size = UDim2.new(0, 45, 0, 45)
-FloatingMenuBtn.Position = UDim2.new(0, 20, 0.25, 0)
+FloatingMenuBtn.Position = UDim2.new(0, 20, 1, -80)
 FloatingMenuBtn.BackgroundColor3 = Color3.fromRGB(20, 15, 30)
 FloatingMenuBtn.Text = "⚙️"
 FloatingMenuBtn.TextSize = 20
@@ -942,7 +933,9 @@ local function crearToggle(parent, texto, estadoInicial, colorCheck, callback)
     end
 
     Track.MouseButton1Click:Connect(function()
-        estado = not estado; actualizarVisuales(estado); callback(estado)
+        estado = not estado
+        actualizarVisuales(estado)
+        callback(estado)
     end)
     
     Container.MouseEnter:Connect(function() TweenService:Create(Container, TransicionRapida, {BackgroundColor3 = Color3.fromRGB(30, 25, 40)}):Play() end)
@@ -1235,7 +1228,7 @@ local function manejarCalidadEstetica(valor)
             while efectosActivos do
                 asegurarEfectosHD()
                 forzarIluminacionHD()
-                task.wait(2) -- Solo lo chequea cada 2 segundos, suficiente para evitar sobreescritura del juego
+                task.wait(2)
             end
         end)
     else
@@ -1273,15 +1266,35 @@ end
 
 crearCategoria(SettingsFrame, "SKINS", colorSkins)
 
-crearToggle(SettingsFrame, "Cream.exe (TailsDoll)", false, colorSkins, function(valor) if valor then pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/thaLILNIKKI/Cream.LMS-Outcome-Memories/HEAD/doll.lua"))() end) end end)
-crearToggle(SettingsFrame, "Neru Tails", false, colorSkins, function(valor) if valor then pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/tailsneru.lua"))() end) end end)
-crearToggle(SettingsFrame, "TD Kolossos", false, colorSkins, function(valor) if valor then pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/TDKolossos.lua"))() end) end end)
-crearToggle(SettingsFrame, "Sonic Miku", false, colorSkins, function(valor) if valor then pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/sonicmiku.lua"))() end) end end)
-crearToggle(SettingsFrame, "Fleetway-SuperScourge", false, colorSkins, function(valor) if valor then pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/superscourge.lua"))() end) end end)
-crearToggle(SettingsFrame, "Sonic-Scourge", false, colorSkins, function(valor) if valor then pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/scourgenormal"))() end) end end)
-crearToggle(SettingsFrame, "Silver-LinternaVerde", false, colorSkins, function(valor) if valor then pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/silverLinVerde.lua"))() end) end end)
-crearToggle(SettingsFrame, "Tails-Megaman", false, colorSkins, function(valor) if valor then pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/Tailsmega.lua"))() end) end end)
-crearToggle(SettingsFrame, "BurningBlaze", false, colorSkins, function(valor) if valor then pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/BurningBlaze.lua"))() end) end end)
+local function manejarSkin(valor, url)
+    if valor then 
+        pcall(function() loadstring(game:HttpGet(url))() end) 
+    else 
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.Health = 0
+        end
+    end
+end
+
+-- Skins Originales
+crearToggle(SettingsFrame, "Cream.exe (TailsDoll)", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/thaLILNIKKI/Cream.LMS-Outcome-Memories/HEAD/doll.lua") end)
+crearToggle(SettingsFrame, "Neru Tails", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/tailsneru.lua") end)
+crearToggle(SettingsFrame, "TD Kolossos", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/TDKolossos.lua") end)
+crearToggle(SettingsFrame, "Sonic Miku", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/sonicmiku.lua") end)
+crearToggle(SettingsFrame, "Fleetway-SuperScourge", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/superscourge.lua") end)
+crearToggle(SettingsFrame, "Sonic-Scourge", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/scourgenormal") end)
+crearToggle(SettingsFrame, "Silver-LinternaVerde", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/silverLinVerde.lua") end)
+crearToggle(SettingsFrame, "Tails-Megaman", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/Tailsmega.lua") end)
+crearToggle(SettingsFrame, "BurningBlaze", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/BurningBlaze.lua") end)
+
+-- Nuevas Skins Integradas
+crearToggle(SettingsFrame, "Paced Fleetway", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/pacedfleetway.lua") end)
+crearToggle(SettingsFrame, "2011X Fleetway", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/2011xfleetway.lua") end)
+crearToggle(SettingsFrame, "Alan (tails)", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/alantails.lua") end)
+crearToggle(SettingsFrame, "Jesse (knuckles)", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/jesseknuckles.lua") end)
+crearToggle(SettingsFrame, "negagen fleetway", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/negagenfleetway.lua") end)
+
 
 crearCategoria(SettingsFrame, "Misc", colorCian)
 
@@ -1591,23 +1604,23 @@ task.spawn(function()
     local soloThemeFolder = ReplicatedStorage:WaitForChild("ClientAssets"):WaitForChild("Sounds"):WaitForChild("mus"):WaitForChild("Game"):WaitForChild("Round"):WaitForChild("SoloTheme")
     
     nuevosTemasGlobal = {
-        ["TailsSolo"]      = {url = "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/tails.mp3", mult = 4},
-        ["CreamSolo"]      = {url = "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/cream.mp3", mult = 4},
-        ["EggmanSolo"]     = {url = "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/eggman.mp3", mult = 4},
-        ["KnucklesSolo"]   = {url = "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/knuckles.mp3", mult = 4},
-        ["MetalSonicSolo"] = {url = "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/metalsonic.mp3", mult = 4},
-        ["SonicSolo"]      = {url = "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/sonic.mp3", mult = 4},
-        ["AmySolo"]        = {url = "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/amy.mp3", mult = 4},
-        ["SilverSolo"]     = {url = "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/silver.mp3", mult = 4},
-        ["BlazeSolo"]      = {url = "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/blaze.mp3", mult = 4},
-        ["ShadowSolo"]     = {url = "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/shadow.mp3", mult = 4}
+        ["TailsSolo"]      = {url = "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/tails.mp3", mult = 6},
+        ["CreamSolo"]      = {url = "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/cream.mp3", mult = 6},
+        ["EggmanSolo"]     = {url = "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/eggman.mp3", mult = 6},
+        ["KnucklesSolo"]   = {url = "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/knuckles.mp3", mult = 6},
+        ["MetalSonicSolo"] = {url = "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/metalsonic.mp3", mult = 6},
+        ["SonicSolo"]      = {url = "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/sonic.mp3", mult = 6},
+        ["AmySolo"]        = {url = "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/amy.mp3", mult = 6},
+        ["SilverSolo"]     = {url = "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/silver.mp3", mult = 6},
+        ["BlazeSolo"]      = {url = "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/blaze.mp3", mult = 6},
+        ["ShadowSolo"]     = {url = "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/shadow.mp3", mult = 6}
     }
 
     local function aplicarDetectorDeApagado(objetoSonido, multiplicadorVolumen)
         if not objetoSonido:IsA("Sound") or objetoSonido:GetAttribute("DetectorAplicado") then return end
         objetoSonido:SetAttribute("DetectorAplicado", true)
         
-        local volumenFinal = multiplicadorVolumen or SoloTheme_Volume_Multiplier or 2
+        local volumenFinal = multiplicadorVolumen or SoloTheme_Volume_Multiplier or 1
         
         objetoSonido.Looped = false
         objetoSonido.Ended:Connect(function() objetoSonido:Stop() end)
@@ -1711,18 +1724,18 @@ task.spawn(function()
         registrarIdOriginal({"2011x", "Default", "LastLifeChase"}, "https://github.com/imnotsense/LMS-Y-CHASES/raw/refs/heads/main/2011x%20lastlife.mp3", "2011LastLifeChase_v2.mp3", 0.5)
         registrarIdOriginal({"2011x", "RETRO", "NormalChase"}, "https://github.com/imnotsense/LMS-Y-CHASES/raw/refs/heads/main/CLASSICO%202011X%20CHASETHEME.mp3", "NormalChase_v2.mp3", 0.5)
         registrarIdOriginal({"2011x", "RETRO", "LastLifeChase"}, "https://github.com/imnotsense/LMS-Y-CHASES/raw/refs/heads/main/lastlife%20classic%202011x.mp3", "lastlifeClassic_v2.mp3", 0.5)
-        registrarIdOriginal({"2011x", "Default", "Rage"}, "https://github.com/imnotsense/LMS-Y-CHASES/raw/refs/heads/main/2011X%20RAGE.mp3", "NormalRage.mp3", 1)
-        registrarIdOriginal({"2011x", "RETRO", "Rage"}, "https://raw.githubusercontent.com/IceKnight125/OutcomeMemories1227/main/ClassicRage.mp3", "ClassicRage.mp3", 1)
-        registrarIdOriginal({"2011x", "miku", "Rage"}, "https://raw.githubusercontent.com/IceKnight125/OutcomeMemories1227/main/MikuRage.mp3", "MikuRage.mp3", 1)
-        registrarIdOriginal({"TailsDoll", "Default", "NormalChase"}, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/tailsdoll-normal.mp3", "TailsDollNormal.mp3", 2)
-        registrarIdOriginal({"TailsDoll", "Default", "LastLifeChase"}, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/tailsdoll-lastlife.mp3", "TailsDollLast.mp3", 2)
-        registrarIdOriginal({"TailsDoll", "Default", "TerrorRadius"}, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/terrorradiusTailsdoll.mp3", "TailsDollTerror.mp3", 2)
-        registrarIdOriginal({"Kolossos", "Default", "NormalChase"}, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/Kolossos-normal.mp3", "KolossosNormal.mp3", 2)
-        registrarIdOriginal({"Kolossos", "Default", "LastLifeChase"}, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/Kolossos-lastlife.mp3", "KolossosLast.mp3", 2)
-        registrarIdOriginal({"Kolossos", "Forest", "NormalChase"}, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/ForestKolossos-normal.mp3", "KolossosVarNormal.mp3", 2)
-        registrarIdOriginal({"Kolossos", "Forest", "LastLifeChase"}, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/ForestKolossos-lastlife.mp3", "KolossosVarLast.mp3", 2)
-        registrarIdOriginal({"Fleetway", "Default", "NormalChase"}, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/Fleetway-normal.mp3", "FleetwayNormal.mp3", 2)
-        registrarIdOriginal({"Fleetway", "Default", "LastLifeChase"}, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/Fleetway-lastlife.mp3", "FleetwayLast.mp3", 2)
+        registrarIdOriginal({"2011x", "Default", "Rage"}, "https://github.com/imnotsense/LMS-Y-CHASES/raw/refs/heads/main/2011X%20RAGE.mp3", "NormalRage.mp3", 0.3)
+        registrarIdOriginal({"2011x", "RETRO", "Rage"}, "https://raw.githubusercontent.com/IceKnight125/OutcomeMemories1227/main/ClassicRage.mp3", "ClassicRage.mp3", 0.3)
+        registrarIdOriginal({"2011x", "miku", "Rage"}, "https://raw.githubusercontent.com/IceKnight125/OutcomeMemories1227/main/MikuRage.mp3", "MikuRage.mp3", 0.3)
+        registrarIdOriginal({"TailsDoll", "Default", "NormalChase"}, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/tailsdoll-normal.mp3", "TailsDollNormal.mp3", 1)
+        registrarIdOriginal({"TailsDoll", "Default", "LastLifeChase"}, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/tailsdoll-lastlife.mp3", "TailsDollLast.mp3", 1)
+        registrarIdOriginal({"TailsDoll", "Default", "TerrorRadius"}, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/terrorradiusTailsdoll.mp3", "TailsDollTerror.mp3", 3)
+        registrarIdOriginal({"Kolossos", "Default", "NormalChase"}, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/Kolossos-normal.mp3", "KolossosNormal.mp3", 1)
+        registrarIdOriginal({"Kolossos", "Default", "LastLifeChase"}, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/Kolossos-lastlife.mp3", "KolossosLast.mp3", 1)
+        registrarIdOriginal({"Kolossos", "Forest", "NormalChase"}, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/ForestKolossos-normal.mp3", "KolossosVarNormal.mp3", 1)
+        registrarIdOriginal({"Kolossos", "Forest", "LastLifeChase"}, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/ForestKolossos-lastlife.mp3", "KolossosVarLast.mp3", 1)
+        registrarIdOriginal({"Fleetway", "Default", "NormalChase"}, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/Fleetway-normal.mp3", "FleetwayNormal.mp3", 1)
+        registrarIdOriginal({"Fleetway", "Default", "LastLifeChase"}, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/Fleetway-lastlife.mp3", "FleetwayLast.mp3", 1)
     end)
 
     local function interceptarSonidoDelJuego(sound)
