@@ -1,12 +1,141 @@
+local CUSTOM_SPINDASH_ID = 98739426366715
+local ASSET_ID = 109931499014905
+local TARGET_CHARACTER_NAME = "Sonic" 
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
-local ASSET_ID = 119984857583906
-local isScriptActive = false
-local currentMdl = nil
-local syncConn = nil
+
+local currentSpindashModel = nil
+local spindashSpinConnection = nil
+local currentCustomModel = nil -- NUEVA VARIABLE: Guarda la referencia del modelo Miku Sonic
+
+local function getPlayerModel()
+	local playersFolder = workspace:FindFirstChild("Players")
+	if playersFolder then
+		return playersFolder:FindFirstChild(player.Name)
+	end
+	return nil
+end
+
+local function isPlayingAsSonic()
+	local model = getPlayerModel()
+	if model then
+		if model:GetAttribute("Character") == TARGET_CHARACTER_NAME then return true end
+		if model.Name == TARGET_CHARACTER_NAME then return true end
+		if model:FindFirstChild(TARGET_CHARACTER_NAME) then return true end
+	end
+	if player:GetAttribute("Character") == TARGET_CHARACTER_NAME then return true end
+	local charString = player:FindFirstChild("Character")
+	if charString and charString:IsA("StringValue") and charString.Value == TARGET_CHARACTER_NAME then return true end
+	
+	local char = player.Character
+	if char and char.Name == TARGET_CHARACTER_NAME then return true end
+	
+	return false
+end
+
+local function stopSpindashFollow()
+	if spindashSpinConnection then
+		spindashSpinConnection:Disconnect()
+		spindashSpinConnection = nil
+	end
+	if currentSpindashModel then
+		currentSpindashModel:Destroy()
+		currentSpindashModel = nil
+	end
+	
+	local playersFolder = workspace:FindFirstChild("Players")
+	local playerFolder = playersFolder and playersFolder:FindFirstChild(player.Name)
+	local spindashFolder = playerFolder and playerFolder:FindFirstChild("Spindash")
+	local originalPart = spindashFolder and spindashFolder:FindFirstChild("Spindash")
+	
+	if originalPart then
+		originalPart.Transparency = 0
+	end
+end
+
+local function startSpindashFollow(spindashPart)
+	if spindashSpinConnection then spindashSpinConnection:Disconnect() end
+	
+	spindashSpinConnection = RunService.Heartbeat:Connect(function()
+		if not currentSpindashModel or not spindashPart or not spindashPart.Parent then
+			stopSpindashFollow()
+			return
+		end
+		
+		local targetCFrame = spindashPart.CFrame
+		if currentSpindashModel:IsA("BasePart") then
+			currentSpindashModel.CFrame = targetCFrame
+		else
+			currentSpindashModel:PivotTo(targetCFrame)
+		end
+	end)
+end
+
+local function replaceSpindashMesh()
+	local playersFolder = workspace:FindFirstChild("Players")
+	if not playersFolder then return end
+	local playerFolder = playersFolder:FindFirstChild(player.Name)
+	if not playerFolder then return end
+	local spindashFolder = playerFolder:FindFirstChild("Spindash")
+	if not spindashFolder then return end
+	
+	local originalPart = spindashFolder:FindFirstChild("Spindash")
+	if originalPart and originalPart:IsA("BasePart") and not currentSpindashModel then
+		
+		local ok, objects = pcall(game.GetObjects, game, "rbxassetid://" .. CUSTOM_SPINDASH_ID)
+		if ok and objects and #objects > 0 then
+			local newMesh = objects[1]:Clone()
+			
+			for _, part in ipairs(newMesh:GetDescendants()) do
+				if part:IsA("BasePart") then
+					part.CanCollide = false
+					part.Anchored = false
+					part.Massless = true
+				end
+			end
+			
+			newMesh.Parent = originalPart.Parent
+			currentSpindashModel = newMesh
+			
+			originalPart.Transparency = 1
+			for _, effect in ipairs(originalPart:GetDescendants()) do
+				if effect:IsA("BasePart") then
+					effect.Transparency = 1
+				elseif effect:IsA("PointLight") or effect:IsA("SpotLight") or effect:IsA("SurfaceLight") then
+					effect.Enabled = false
+				elseif effect:IsA("ParticleEmitter") or effect:IsA("Trail") or effect:IsA("Beam") then
+					effect.Enabled = false
+				end
+			end
+			
+			startSpindashFollow(originalPart)
+		end
+	end
+end
+
+RunService.Heartbeat:Connect(function()
+	if not isPlayingAsSonic() then
+		if currentSpindashModel then stopSpindashFollow() end
+		return
+	end
+
+	local playersFolder = workspace:FindFirstChild("Players")
+	local playerFolder = playersFolder and playersFolder:FindFirstChild(player.Name)
+	local spindashFolder = playerFolder and playerFolder:FindFirstChild("Spindash")
+	
+	if spindashFolder and spindashFolder:FindFirstChild("Spindash") then
+		if not currentSpindashModel then
+			replaceSpindashMesh()
+		end
+	else
+		if currentSpindashModel then
+			stopSpindashFollow()
+		end
+	end
+end)
 
 local function loadAsset(id)
 	local ok, objects = pcall(game.GetObjects, game, "rbxassetid://" .. id)
@@ -14,142 +143,63 @@ local function loadAsset(id)
 	return objects[1]:Clone()
 end
 
-local function getPlayerModel()
-	local playersFolder = workspace:FindFirstChild("Players")
-	return playersFolder and playersFolder:FindFirstChild(player.Name)
-end
-
-local function isSonic()
+local function isLastLife()
 	local model = getPlayerModel()
-	return model and model:GetAttribute("Character") == "Sonic"
-end
-
--- 🛡️ FUNCIÓN DE PROTECCIÓN DE OJOS 🛡️
--- Cambia el nombre de texturas y partes de la cara para que el juego no las rompa en los emotes
-local function protegerCara(model)
-	for _, v in ipairs(model:GetDescendants()) do
-		if v:IsA("Decal") or v:IsA("Texture") then
-			v.Name = "MikuFaceTexture_" .. math.random(100, 999)
-		elseif v:IsA("BasePart") then
-			local nameLower = string.lower(v.Name)
-			if string.find(nameLower, "eye") or string.find(nameLower, "pupil") or string.find(nameLower, "face") or string.find(nameLower, "ojo") or string.find(nameLower, "cara") then
-				v.Name = "MikuFacePart_" .. math.random(100, 999)
-			end
-		end
-	end
-end
-
-local function setupViewport()
-	task.spawn(function()
-		local viewportFrame = player.PlayerGui
-			:WaitForChild("Round", 30)
-			:WaitForChild("Game", 30)
-			:WaitForChild("SurvivorHP", 30)
-			:WaitForChild("ViewportFrame", 30)
-		if not viewportFrame then return end
-		local viewportModel = viewportFrame
-			:WaitForChild("WorldModel", 30)
-			:WaitForChild("Default", 30)
-		if not viewportModel then return end
-
-		local vpOverrideModel = nil
-		local function replaceViewportModel()
-			local ok, objects = pcall(game.GetObjects, game, "rbxassetid://" .. ASSET_ID)
-			if not ok or #objects == 0 then return end
-			if vpOverrideModel and vpOverrideModel.Parent then
-				vpOverrideModel:Destroy()
-				vpOverrideModel = nil
-			end
-			local newModel = objects[1]:Clone()
-			protegerCara(newModel) -- También protegemos la interfaz del HUD
-			vpOverrideModel = newModel
-			for _, part in ipairs(viewportModel:GetDescendants()) do
-				if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-					part.Transparency = 1
-				end
-			end
-			local newHum = newModel:FindFirstChildOfClass("Humanoid")
-			if newHum then newHum:Destroy() end
-			for _, v in ipairs(newModel:GetDescendants()) do
-				if v:IsA("BasePart") then v.CanCollide = false end
-			end
-			newModel.Parent = viewportModel
-			local viewportHRP = viewportModel:FindFirstChild("HumanoidRootPart")
-			local primaryPart = newModel.PrimaryPart or newModel:FindFirstChildWhichIsA("BasePart")
-			if viewportHRP and primaryPart then
-				newModel:PivotTo(viewportHRP.CFrame)
-				primaryPart.Transparency = 1
-				local weld = Instance.new("WeldConstraint")
-				weld.Part0 = viewportHRP
-				weld.Part1 = primaryPart
-				weld.Parent = viewportHRP
-			end
-		end
-
-		replaceViewportModel()
-
-		viewportModel.DescendantAdded:Connect(function()
-			task.wait(0.1)
-			if not vpOverrideModel or not vpOverrideModel.Parent then
-				vpOverrideModel = nil
-				replaceViewportModel()
-			end
-		end)
-	end)
+	return model and model:GetAttribute("LastLife") == true
 end
 
 local function setupCharacter(char)
-	if not isScriptActive then return end
-	if syncConn then syncConn:Disconnect() syncConn = nil end
-	if currentMdl and currentMdl.Parent then currentMdl:Destroy() currentMdl = nil end
-
-	for _, v in ipairs(char:GetDescendants()) do
-		if v:IsA("BasePart") then v.Transparency = 1 end
-	end
+	if not isPlayingAsSonic() then return end
 
 	local playersFolder = workspace:FindFirstChild("Players")
 	local oldVisual = playersFolder and playersFolder:FindFirstChild(player.Name)
-	if oldVisual then
-		for _, v in ipairs(oldVisual:GetDescendants()) do
-			if v:IsA("BasePart") then v.Transparency = 1 end
-		end
-	end
-
+	
 	local mdl = loadAsset(ASSET_ID)
 	if not mdl then return end
-
-	-- Aplicamos el escudo protector antes de meterlo al juego
-	protegerCara(mdl)
-
+	
+	currentCustomModel = mdl -- Guardamos el modelo inyectado para no ocultarlo después
+	
 	if oldVisual then mdl.Parent = oldVisual else mdl.Parent = char end
+
+	task.wait(0.5)
+
+	local lastLifeActive = isLastLife()
+	if lastLifeActive then
+		local brokenFolder = mdl:FindFirstChild("Broken")
+		if brokenFolder then
+			for _, part in ipairs(brokenFolder:GetDescendants()) do
+				if part:IsA("BasePart") then part.Transparency = 0 end
+			end
+		end
+		local circularFolder = mdl:FindFirstChild("Circular")
+		if circularFolder then
+			for _, part in ipairs(circularFolder:GetDescendants()) do
+				if part:IsA("BasePart") then part.Transparency = 1 end
+			end
+		end
+	end
 
 	local hrp = char:FindFirstChild("HumanoidRootPart")
 	local newHrp = mdl:FindFirstChild("HumanoidRootPart")
 	if not hrp or not newHrp then mdl:Destroy() return end
-
+	
 	newHrp.Anchored = true
 	newHrp.Transparency = 1
-
-	local mdlHum = mdl:FindFirstChildOfClass("Humanoid")
-	if mdlHum then mdlHum:Destroy() end
-	local mdlAnim = mdl:FindFirstChildOfClass("Animator")
-	if mdlAnim then mdlAnim:Destroy() end
-
-	-- Dejamos que el renderizado de Roblox trabaje limpio (Igual que en tu script de Tails)
+	
+	local existingHum = mdl:FindFirstChildOfClass("Humanoid")
+	if existingHum then existingHum:Destroy() end
+	local existingAnim = mdl:FindFirstChildOfClass("Animator")
+	if existingAnim then existingAnim:Destroy() end
+	
 	for _, v in ipairs(mdl:GetDescendants()) do
-		if v:IsA("BasePart") then
-			v.CanCollide = false
-			if v.Name == "HumanoidRootPart" or v.Name == "Waist" then
-				v.Transparency = 1
-			end
-		elseif v:IsA("Trail") or v:IsA("Beam") then
-			v.Enabled = false
-		end
+		if v:IsA("BasePart") then v.CanCollide = false end
 	end
-
+	
 	newHrp.CFrame = hrp.CFrame
-	currentMdl = mdl
-
+	task.wait(0.1)
+	newHrp.Transparency = 1
+	
+	local syncConn
 	syncConn = RunService.Stepped:Connect(function()
 		if not char.Parent or not hrp.Parent or not newHrp.Parent then
 			if syncConn then syncConn:Disconnect() end
@@ -157,63 +207,88 @@ local function setupCharacter(char)
 		end
 		newHrp.CFrame = hrp.CFrame
 	end)
+	
+	local function monitorLastLife()
+		while char and char.Parent do
+			if not isPlayingAsSonic() then break end 
 
-	task.spawn(function()
-		while char and char.Parent and isScriptActive do
-			if oldVisual and oldVisual.Parent then
-				local defaultFolder = oldVisual:FindFirstChild("Default")
-				if defaultFolder then
-					local waist = defaultFolder:FindFirstChild("Waist")
-					local hrpDef = defaultFolder:FindFirstChild("HumanoidRootPart")
-					if waist and waist:IsA("BasePart") then waist.Transparency = 1 end
-					if hrpDef and hrpDef:IsA("BasePart") then hrpDef.Transparency = 1 end
+			local lastLifeActive = isLastLife()
+			local brokenFolder = mdl:FindFirstChild("Broken")
+			local circularFolder = mdl:FindFirstChild("Circular")
+
+			if lastLifeActive then
+				if brokenFolder then
+					for _, part in ipairs(brokenFolder:GetDescendants()) do
+						if part:IsA("BasePart") then part.Transparency = 0 end
+					end
+				end
+				if circularFolder then
+					for _, part in ipairs(circularFolder:GetDescendants()) do
+						if part:IsA("BasePart") then part.Transparency = 1 end
+					end
+				end
+			else
+				if brokenFolder then
+					for _, part in ipairs(brokenFolder:GetDescendants()) do
+						if part:IsA("BasePart") then part.Transparency = 1 end
+					end
+				end
+				if circularFolder then
+					for _, part in ipairs(circularFolder:GetDescendants()) do
+						if part:IsA("BasePart") then part.Transparency = 0 end
+					end
 				end
 			end
-			task.wait(0.1)
-		end
-	end)
-
-end
-
-local function startScript()
-	if isScriptActive then return end
-	task.wait(3)
-	isScriptActive = true
-	setupViewport()
-	if character then setupCharacter(character) end
-end
-
-local function stopScript()
-	if not isScriptActive then return end
-	isScriptActive = false
-	if syncConn then syncConn:Disconnect() syncConn = nil end
-	if currentMdl and currentMdl.Parent then currentMdl:Destroy() currentMdl = nil end
-	if character then
-		for _, v in ipairs(character:GetDescendants()) do
-			if v:IsA("BasePart") then v.Transparency = 0 end
+			task.wait(0.5)
 		end
 	end
+
+	task.spawn(monitorLastLife)
+end
+
+-- BUCLE DE INVISIBILIDAD MEJORADO
+task.spawn(function()
+	while task.wait(0.1) do
+		if isPlayingAsSonic() then
+			
+			-- 1. Ocultar el personaje base (las hitboxes)
+			if character then
+				for _, v in ipairs(character:GetDescendants()) do
+					if v:IsA("BasePart") or v:IsA("Decal") then
+						-- Saltar nuestro modelo custom
+						if currentCustomModel and (v == currentCustomModel or v:IsDescendantOf(currentCustomModel)) then continue end
+						v.Transparency = 1
+					end
+				end
+			end
+			
+			-- 2. Ocultar los visuales originales de Outcome Memories
+			local playersFolder = workspace:FindFirstChild("Players")
+			local visualFolder = playersFolder and playersFolder:FindFirstChild(player.Name)
+			
+			if visualFolder then
+				for _, v in ipairs(visualFolder:GetDescendants()) do
+					if v:IsA("BasePart") or v:IsA("MeshPart") or v:IsA("Decal") then
+						-- Saltar el modelo de Miku Sonic
+						if currentCustomModel and (v == currentCustomModel or v:IsDescendantOf(currentCustomModel)) then continue end
+						-- Saltar el spindash customizado
+						if currentSpindashModel and (v == currentSpindashModel or v:IsDescendantOf(currentSpindashModel)) then continue end
+						
+						-- Mantener todo lo demás del juego invisible constantemente
+						v.Transparency = 1
+					end
+				end
+			end
+			
+		end
+	end
+end)
+
+if character then
+	setupCharacter(character)
 end
 
 player.CharacterAdded:Connect(function(newChar)
 	character = newChar
-	if isScriptActive then
-		task.wait(1)
-		setupCharacter(newChar)
-		setupViewport()
-	end
+	setupCharacter(newChar)
 end)
-
-local isCurrentlySonic = false
-RunService.Heartbeat:Connect(function()
-	local check = isSonic()
-	if check ~= isCurrentlySonic then
-		isCurrentlySonic = check
-		if isCurrentlySonic then startScript() else stopScript() end
-	end
-end)
-
-if isSonic() then
-	isCurrentlySonic = true
-	startScript()
-end
