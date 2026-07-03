@@ -150,7 +150,11 @@ local EmotesDatabase = {
         {Name = "pipebomb2", IsLoop = true, TraversalSpeed = 5, MusicId = "rbxassetid://119640578709774", AnimationId = "rbxassetid://130034868708651"},
         {Name = "TickTock", IsLoop = true, TraversalSpeed = 0, MusicId = "rbxassetid://73526950119661", AnimationId = "rbxassetid://95107785706455"},
         {Name = "Diaries", IsLoop = true, TraversalSpeed = 0, MusicId = "rbxassetid://76173803344707", AnimationId = "rbxassetid://92897830029002",
-            OnUse = function(p1) if p1:FindFirstChild("Book") or p1:FindFirstChild("Feather") then return end if not script:FindFirstChild("Feather") or not script:FindFirstChild("Book") then return end local v1 = script.Feather:Clone(); v1.Parent = p1; v1:PivotTo(p1.HumanoidRootPart.CFrame * CFrame.Angles(0, 0, -1.5707963267948966)); v1.Root.CFrame = p1.HumanoidRootPart.CFrame * CFrame.Angles(0, 0, -1.5707963267948966); local Motor6D = Instance.new("Motor6D"); Motor6D.Name = v1.Feather.Name; Motor6D.Part0 = p1.HumanoidRootPart; Motor6D.Part1 = v1.Feather; Motor6D.C0 = p1.HumanoidRootPart.CFrame:toObjectSpace(v1.Feather.CFrame); Motor6D.Parent = v1.Feather; local v3 = script.Book:Clone(); v3.Parent = p1; v3:PivotTo(p1.HumanoidRootPart.CFrame); local Motor6D2 = Instance.new("Motor6D"); Motor6D2.Name = v3.PrimaryPart.Name; Motor6D2.Part0 = p1.HumanoidRootPart; Motor6D2.Part1 = v3.PrimaryPart; Motor6D2.C0 = p1.HumanoidRootPart.CFrame:toObjectSpace(v3.PrimaryPart.CFrame); Motor6D2.Parent = v3.PrimaryPart end,
+            OnUse = function(p1) if p1:FindFirstChild("Book") or p1:FindFirstChild("Feather") then return end if not script:FindFirstChild("Feather") or not script:FindFirstChild("Book") then return end local v1 = script.Feather:Clone();
+v1.Parent = p1; v1:PivotTo(p1.HumanoidRootPart.CFrame * CFrame.Angles(0, 0, -1.5707963267948966)); v1.Root.CFrame = p1.HumanoidRootPart.CFrame * CFrame.Angles(0, 0, -1.5707963267948966); local Motor6D = Instance.new("Motor6D");
+Motor6D.Name = v1.Feather.Name; Motor6D.Part0 = p1.HumanoidRootPart; Motor6D.Part1 = v1.Feather; Motor6D.C0 = p1.HumanoidRootPart.CFrame:toObjectSpace(v1.Feather.CFrame); Motor6D.Parent = v1.Feather; local v3 = script.Book:Clone();
+v3.Parent = p1; v3:PivotTo(p1.HumanoidRootPart.CFrame); local Motor6D2 = Instance.new("Motor6D"); Motor6D2.Name = v3.PrimaryPart.Name; Motor6D2.Part0 = p1.HumanoidRootPart; Motor6D2.Part1 = v3.PrimaryPart; Motor6D2.C0 = p1.HumanoidRootPart.CFrame:toObjectSpace(v3.PrimaryPart.CFrame);
+Motor6D2.Parent = v3.PrimaryPart end,
             OnLeave = function(p1) if p1:FindFirstChild("Feather") then p1.Feather:Destroy() end if p1:FindFirstChild("Book") then p1.Book:Destroy() end end
         }
     },
@@ -399,40 +403,66 @@ local function updateTabs(activeFrame)
     if EsDesarrollador then DevFrame.Visible = activeFrame == "Dev" end
 end
 
-local TabSelectionBox = Instance.new("Frame")
-TabSelectionBox.Size = UDim2.new(1, -40, 0, 36)
-TabSelectionBox.Position = UDim2.new(0, 20, 0, 60)
-TabSelectionBox.BackgroundColor3 = Color3.fromRGB(20, 15, 25)
-TabSelectionBox.BorderSizePixel = 0
-TabSelectionBox.Parent = MainFrame
-Instance.new("UICorner", TabSelectionBox).CornerRadius = UDim.new(0, 8)
-Instance.new("UIStroke", TabSelectionBox).Color = ColorAcento2
+-- ============================================================================
+-- NUEVO SISTEMA DE PESTAÑAS (DROPDOWN MENU)
+-- ============================================================================
+local TabDropdownBtn = Instance.new("TextButton")
+TabDropdownBtn.Size = UDim2.new(1, -40, 0, 36)
+TabDropdownBtn.Position = UDim2.new(0, 20, 0, 60)
+TabDropdownBtn.BackgroundColor3 = Color3.fromRGB(20, 15, 25)
+TabDropdownBtn.Text = "Pestaña: Ajustes ▼"
+TabDropdownBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+TabDropdownBtn.Font = Enum.Font.GothamBold
+TabDropdownBtn.TextSize = 12
+TabDropdownBtn.AutoButtonColor = false
+TabDropdownBtn.Parent = MainFrame
+TabDropdownBtn.ZIndex = 15
+Instance.new("UICorner", TabDropdownBtn).CornerRadius = UDim.new(0, 8)
+Instance.new("UIStroke", TabDropdownBtn).Color = ColorAcento2
+
+local TabDropdownList = Instance.new("ScrollingFrame")
+TabDropdownList.Size = UDim2.new(1, -40, 0, 120)
+TabDropdownList.Position = UDim2.new(0, 20, 0, 100)
+TabDropdownList.BackgroundColor3 = Color3.fromRGB(20, 15, 25)
+TabDropdownList.BorderSizePixel = 0
+TabDropdownList.ZIndex = 20
+TabDropdownList.Visible = false
+TabDropdownList.CanvasSize = UDim2.new(0, 0, 0, 0)
+TabDropdownList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+TabDropdownList.ScrollBarThickness = 4
+TabDropdownList.ScrollBarImageColor3 = ColorAcento1
+TabDropdownList.Parent = MainFrame
+Instance.new("UICorner", TabDropdownList).CornerRadius = UDim.new(0, 8)
+Instance.new("UIStroke", TabDropdownList).Color = ColorAcento2
 
 local TabLayout = Instance.new("UIListLayout")
-TabLayout.FillDirection = Enum.FillDirection.Horizontal
 TabLayout.SortOrder = Enum.SortOrder.LayoutOrder
-TabLayout.Parent = TabSelectionBox
+TabLayout.Parent = TabDropdownList
 
 local listaPestanas = {"Ajustes", "Emotes", "Personalizar"}
 if EsDesarrollador then table.insert(listaPestanas, "Dev") end
 
-local numTabs = #listaPestanas
 for i, tabName in ipairs(listaPestanas) do
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1/numTabs, 0, 1, 0)
+    btn.Size = UDim2.new(1, 0, 0, 35)
     btn.BackgroundColor3 = Color3.fromRGB(20, 15, 25)
-    btn.BackgroundTransparency = 1
     btn.Text = tabName
     btn.TextColor3 = Color3.fromRGB(150, 140, 160)
     btn.Font = Enum.Font.GothamMedium
     btn.TextSize = 12
+    btn.ZIndex = 20
     btn.AutoButtonColor = false
-    btn.Parent = TabSelectionBox
+    btn.Parent = TabDropdownList
     btn.LayoutOrder = i
-    
-    btn.MouseButton1Click:Connect(function() 
-        updateTabs(tabName) 
-        for _, child in ipairs(TabSelectionBox:GetChildren()) do
+
+    btn.MouseEnter:Connect(function() TweenService:Create(btn, TransicionRapida, {BackgroundColor3 = Color3.fromRGB(40, 30, 50)}):Play() end)
+    btn.MouseLeave:Connect(function() TweenService:Create(btn, TransicionRapida, {BackgroundColor3 = Color3.fromRGB(20, 15, 25)}):Play() end)
+
+    btn.MouseButton1Click:Connect(function()
+        updateTabs(tabName)
+        TabDropdownBtn.Text = "Pestaña: " .. tabName .. " ▼"
+        TabDropdownList.Visible = false
+        for _, child in ipairs(TabDropdownList:GetChildren()) do
             if child:IsA("TextButton") then
                 child.TextColor3 = Color3.fromRGB(150, 140, 160)
                 child.Font = Enum.Font.GothamMedium
@@ -443,9 +473,13 @@ for i, tabName in ipairs(listaPestanas) do
     end)
 end
 
+TabDropdownBtn.MouseButton1Click:Connect(function()
+    TabDropdownList.Visible = not TabDropdownList.Visible
+end)
+
 updateTabs("Ajustes")
-if TabSelectionBox:FindFirstChildWhichIsA("TextButton") then
-    local primerBtn = TabSelectionBox:FindFirstChildWhichIsA("TextButton")
+if TabDropdownList:FindFirstChildWhichIsA("TextButton") then
+    local primerBtn = TabDropdownList:FindFirstChildWhichIsA("TextButton")
     primerBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     primerBtn.Font = Enum.Font.GothamBold
 end
@@ -686,7 +720,7 @@ local function cargarEmotesPersonaje(nombrePersonaje)
             
             btn.MouseEnter:Connect(function() TweenService:Create(btn, TransicionRapida, {BackgroundColor3 = ColorAcento2, TextColor3 = Color3.new(1,1,1)}):Play() end)
             btn.MouseLeave:Connect(function() TweenService:Create(btn, TransicionRapida, {BackgroundColor3 = Color3.fromRGB(30, 25, 40), TextColor3 = Color3.fromRGB(240, 230, 255)}):Play() end)
-            
+           
             btn.MouseButton1Click:Connect(function() 
                 lastSelectedEmote = emoteData
                 SelectedEmoteLabel.Text = emoteData.Name .. " (Presiona R)"
@@ -1264,7 +1298,7 @@ for _, personaje in ipairs(listaPersonajes) do
     end)
 end
 
-crearCategoria(SettingsFrame, "SKINS", colorSkins)
+crearCategoria(SettingsFrame, "Skins (no activar varias del mismo personaje)", colorSkins)
 
 local function manejarSkin(valor, url)
     if valor then 
@@ -1294,7 +1328,6 @@ crearToggle(SettingsFrame, "2011X Fleetway", false, colorSkins, function(v) mane
 crearToggle(SettingsFrame, "Alan (tails)", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/alantails.lua") end)
 crearToggle(SettingsFrame, "Jesse (knuckles)", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/jesseknuckles.lua") end)
 crearToggle(SettingsFrame, "negagen fleetway", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/negagenfleetway.lua") end)
-
 
 crearCategoria(SettingsFrame, "Misc", colorCian)
 
@@ -1394,6 +1427,11 @@ if EsDesarrollador then
     refrescarListaTP()
 
     crearCategoria(DevFrame, "Herramientas de Desarrollador", colorDev)
+
+    local noJumpCooldownActivo = false
+    crearToggle(DevFrame, "No Jump Cooldown", false, colorDev, function(valor)
+        noJumpCooldownActivo = valor
+    end)
 
     crearBotonAccion(DevFrame, "Imprimir Rutas de Chases (F9)", Color3.fromRGB(120, 50, 180), function()
         local function printPaths(folder, currentPath)
@@ -1506,6 +1544,19 @@ if EsDesarrollador then
             local customModel = customFolder and customFolder:FindFirstChild(LocalPlayer.Name)
             if customModel and customModel:FindFirstChild("Humanoid") then
                 customModel.Humanoid.WalkSpeed = devWalkSpeed
+            end
+        end
+
+        if noJumpCooldownActivo and UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+            local charNormal = LocalPlayer.Character
+            if charNormal and charNormal:FindFirstChild("Humanoid") and charNormal.Humanoid.FloorMaterial ~= Enum.Material.Air then
+                charNormal.Humanoid.Jump = true
+            end
+            
+            local customFolder = workspace:FindFirstChild("Players")
+            local customModel = customFolder and customFolder:FindFirstChild(LocalPlayer.Name)
+            if customModel and customModel:FindFirstChild("Humanoid") and customModel.Humanoid.FloorMaterial ~= Enum.Material.Air then
+                customModel.Humanoid.Jump = true
             end
         end
     end)
@@ -1860,7 +1911,7 @@ task.spawn(function()
 
         if soloFolder then
             for _, sound in ipairs(soloFolder:GetDescendants()) do
-                if sound:IsA("Sound") then mutedSounds[sound] = sound.Volume; sound.Volume = 0 end
+                 if sound:IsA("Sound") then mutedSounds[sound] = sound.Volume; sound.Volume = 0 end
             end
         end
 
