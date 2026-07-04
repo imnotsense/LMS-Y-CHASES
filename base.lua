@@ -477,7 +477,7 @@ TabDropdownBtn.MouseButton1Click:Connect(function()
     TabDropdownList.Visible = not TabDropdownList.Visible
 end)
 
-updateTabs("Ajustes")
+updateTabs("Pricipal")
 if TabDropdownList:FindFirstChildWhichIsA("TextButton") then
     local primerBtn = TabDropdownList:FindFirstChildWhichIsA("TextButton")
     primerBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
