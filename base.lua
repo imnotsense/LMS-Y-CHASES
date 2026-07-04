@@ -1281,7 +1281,7 @@ crearCategoria(SettingsFrame, "Selección de Personaje Automática", colorAutoSe
 
 -- Variables y Remoto
 local VoteRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Voted")
-local listaAutoPick = {"Sonic", "Amy", "Eggman", "Cream", "Tails", "Knuckles", "MetalSonic", "Blaze", "Silver", "Shadow"}
+local listaAutoPick = {"Sonic", "Amy", "Eggman", "Cream", "Tails", "Knuckles", "MetalSonic", "Blaze", "Silver"}
 local personajeAutoPick = listaAutoPick[1]
 local autoPickActivo = false
 
@@ -1377,7 +1377,7 @@ for _, personaje in ipairs(listaAutoPick) do
 end
 
 -- Toggle para activar/desactivar la función
-crearToggle(SettingsFrame, "Activar Auto Pick (4 Segundos)", false, colorAutoSelect, function(valor)
+crearToggle(SettingsFrame, "Activar Auto selección", false, colorAutoSelect, function(valor)
     autoPickActivo = valor
 end)
 
@@ -1392,7 +1392,7 @@ task.spawn(function()
             local charSelect = gameUI and gameUI:FindFirstChild("CharSelect")
             
             if charSelect and charSelect.Visible == true then
-                task.wait(4)
+                task.wait(1)
                 
                 local freshUI = playerGui:FindFirstChild("GameUI")
                 local freshSelect = freshUI and freshUI:FindFirstChild("CharSelect")
