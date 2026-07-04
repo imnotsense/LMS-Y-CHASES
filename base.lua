@@ -1276,25 +1276,105 @@ end
 -- ============================================================================
 -- SELECCIÓN DE PERSONAJE AUTOMÁTICA (AUTO PICK)
 -- ============================================================================
-local colorAutoSelect = Color3.fromRGB(255, 170, 0) -- Un tono naranja/dorado para destacar
+local colorAutoSelect = Color3.fromRGB(200, 140, 0) -- Dorado oscuro para mejor lectura
 crearCategoria(SettingsFrame, "Selección de Personaje Automática", colorAutoSelect)
 
 -- Variables y Remoto
 local VoteRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Voted")
 local listaAutoPick = {"Sonic", "Amy", "Eggman", "Cream", "Tails", "Knuckles", "MetalSonic", "Blaze", "Silver", "Shadow"}
-local indiceAutoPick = 1
-local personajeAutoPick = listaAutoPick[indiceAutoPick]
+local personajeAutoPick = listaAutoPick[1]
 local autoPickActivo = false
 
--- Botón para rotar entre personajes (Cíclico)
-local btnSeleccionPersonaje
-btnSeleccionPersonaje = crearBotonAccion(SettingsFrame, "Seleccionado: " .. string.upper(personajeAutoPick) .. " (Click para cambiar)", colorAutoSelect, function()
-    indiceAutoPick = (indiceAutoPick % #listaAutoPick) + 1
-    personajeAutoPick = listaAutoPick[indiceAutoPick]
-    if btnSeleccionPersonaje then
-        btnSeleccionPersonaje.Text = "Seleccionado: " .. string.upper(personajeAutoPick) .. " (Click para cambiar)"
+-- CONTENEDOR PRINCIPAL DEL DROPDOWN
+local DropdownContainer = Instance.new("Frame")
+DropdownContainer.Name = "DropdownContainer"
+DropdownContainer.Size = UDim2.new(1, 0, 0, 35)
+DropdownContainer.BackgroundTransparency = 1
+DropdownContainer.Parent = SettingsFrame
+
+local DropdownLayout = Instance.new("UIListLayout")
+DropdownLayout.SortOrder = Enum.SortOrder.LayoutOrder
+DropdownLayout.Padding = UDim.new(0, 5)
+DropdownLayout.Parent = DropdownContainer
+
+-- Botón principal que despliega la lista
+local BtnPrincipal = Instance.new("TextButton")
+BtnPrincipal.Size = UDim2.new(1, 0, 0, 35)
+BtnPrincipal.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+BtnPrincipal.TextColor3 = colorAutoSelect
+BtnPrincipal.Font = Enum.Font.GothamBold
+BtnPrincipal.TextSize = 14
+BtnPrincipal.Text = "Personaje: " .. string.upper(personajeAutoPick) .. " ▼"
+BtnPrincipal.Parent = DropdownContainer
+
+local UICornerBtn = Instance.new("UICorner")
+UICornerBtn.CornerRadius = UDim.new(0, 6)
+UICornerBtn.Parent = BtnPrincipal
+
+-- Marco que contiene las opciones (Lista desplegable oculta por defecto)
+local ListaFrame = Instance.new("Frame")
+ListaFrame.Size = UDim2.new(1, 0, 0, 0)
+ListaFrame.AutomaticSize = Enum.AutomaticSize.Y
+ListaFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+ListaFrame.Visible = false
+ListaFrame.ClipsDescendants = true
+ListaFrame.Parent = DropdownContainer
+
+local UICornerLista = Instance.new("UICorner")
+UICornerLista.CornerRadius = UDim.new(0, 6)
+UICornerLista.Parent = ListaFrame
+
+local ListaLayout = Instance.new("UIListLayout")
+ListaLayout.SortOrder = Enum.SortOrder.LayoutOrder
+ListaLayout.Padding = UDim.new(0, 2)
+ListaLayout.Parent = ListaFrame
+
+local ListaPadding = Instance.new("UIPadding")
+ListaPadding.PaddingTop = UDim.new(0, 5)
+ListaPadding.PaddingBottom = UDim.new(0, 5)
+ListaPadding.Parent = ListaFrame
+
+-- Lógica para abrir/cerrar el menú desplegable
+local isDropdownOpen = false
+BtnPrincipal.MouseButton1Click:Connect(function()
+    isDropdownOpen = not isDropdownOpen
+    ListaFrame.Visible = isDropdownOpen
+    BtnPrincipal.Text = "Personaje: " .. string.upper(personajeAutoPick) .. (isDropdownOpen and " ▲" or " ▼")
+    
+    -- Expande el contenedor dinámicamente si tu menú lo requiere
+    if isDropdownOpen then
+        DropdownContainer.AutomaticSize = Enum.AutomaticSize.Y
+    else
+        DropdownContainer.AutomaticSize = Enum.AutomaticSize.None
+        DropdownContainer.Size = UDim2.new(1, 0, 0, 35)
     end
 end)
+
+-- Generar los botones de cada personaje dentro de la lista
+for _, personaje in ipairs(listaAutoPick) do
+    local OpcionBtn = Instance.new("TextButton")
+    OpcionBtn.Size = UDim2.new(1, 0, 0, 30)
+    OpcionBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    OpcionBtn.BackgroundTransparency = 1
+    OpcionBtn.TextColor3 = Color3.fromRGB(210, 210, 210)
+    OpcionBtn.Font = Enum.Font.GothamSemibold
+    OpcionBtn.TextSize = 13
+    OpcionBtn.Text = string.upper(personaje)
+    OpcionBtn.Parent = ListaFrame
+
+    -- Efecto visual al pasar el cursor
+    OpcionBtn.MouseEnter:Connect(function() OpcionBtn.BackgroundTransparency = 0.5 end)
+    OpcionBtn.MouseLeave:Connect(function() OpcionBtn.BackgroundTransparency = 1 end)
+
+    OpcionBtn.MouseButton1Click:Connect(function()
+        personajeAutoPick = personaje
+        isDropdownOpen = false
+        ListaFrame.Visible = false
+        BtnPrincipal.Text = "Personaje: " .. string.upper(personajeAutoPick) .. " ▼"
+        DropdownContainer.AutomaticSize = Enum.AutomaticSize.None
+        DropdownContainer.Size = UDim2.new(1, 0, 0, 35)
+    end)
+end
 
 -- Toggle para activar/desactivar la función
 crearToggle(SettingsFrame, "Activar Auto Pick (4 Segundos)", false, colorAutoSelect, function(valor)
@@ -1312,7 +1392,7 @@ task.spawn(function()
             local charSelect = gameUI and gameUI:FindFirstChild("CharSelect")
             
             if charSelect and charSelect.Visible == true then
-                task.wait(4) -- Espera los 4 segundos originales
+                task.wait(4)
                 
                 local freshUI = playerGui:FindFirstChild("GameUI")
                 local freshSelect = freshUI and freshUI:FindFirstChild("CharSelect")
@@ -1323,7 +1403,6 @@ task.spawn(function()
                     end)
                 end
                 
-                -- Espera a que la pantalla de selección desaparezca para no spamear el remote
                 repeat 
                     task.wait(0.5)
                     local checkUI = playerGui:FindFirstChild("GameUI")
@@ -1334,7 +1413,6 @@ task.spawn(function()
     end
 end)
 -- ============================================================================
-
 
 crearCategoria(SettingsFrame, "Visual", colorVioleta)
 crearToggle(SettingsFrame, "Quitar Atmósfera (Anti-Lag)", false, colorVioleta, manejarAtmosfera)
