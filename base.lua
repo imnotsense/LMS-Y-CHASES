@@ -1312,23 +1312,22 @@ local function manejarSkin(valor, url)
 end
 
 -- Skins Originales
-crearToggle(SettingsFrame, "Cream.exe (TailsDoll)", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/thaLILNIKKI/Cream.LMS-Outcome-Memories/HEAD/doll.lua") end)
-crearToggle(SettingsFrame, "Neru Tails", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/tailsneru.lua") end)
-crearToggle(SettingsFrame, "TD Kolossos", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/TDKolossos.lua") end)
-crearToggle(SettingsFrame, "Sonic Miku", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/sonicmiku.lua") end)
-crearToggle(SettingsFrame, "Fleetway-SuperScourge", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/superscourge.lua") end)
-crearToggle(SettingsFrame, "Sonic-Scourge", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/scourgenormal") end)
-crearToggle(SettingsFrame, "Silver-LinternaVerde", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/silverLinVerde.lua") end)
-crearToggle(SettingsFrame, "Tails-Megaman", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/Tailsmega.lua") end)
-crearToggle(SettingsFrame, "BurningBlaze", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/BurningBlaze.lua") end)
-
--- Nuevas Skins Integradas
 crearToggle(SettingsFrame, "Paced Fleetway", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/pacedfleetway.lua") end)
 crearToggle(SettingsFrame, "2011X Fleetway", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/2011xfleetway.lua") end)
-crearToggle(SettingsFrame, "Alan (tails)", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/alantails.lua") end)
-crearToggle(SettingsFrame, "Jesse (knuckles)", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/jesseknuckles.lua") end)
-crearToggle(SettingsFrame, "Sonic TD", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/sonictd.lua") end)
 crearToggle(SettingsFrame, "negagen fleetway", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/negagenfleetway.lua") end)
+crearToggle(SettingsFrame, "Fleetway-SuperScourge", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/superscourge.lua") end)
+crearToggle(SettingsFrame, "Cream.exe (TailsDoll)", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/thaLILNIKKI/Cream.LMS-Outcome-Memories/HEAD/doll.lua") end)
+crearToggle(SettingsFrame, "TD Kolossos", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/TDKolossos.lua") end)
+crearToggle(SettingsFrame, "Neru Tails", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/tailsneru.lua") end)
+crearToggle(SettingsFrame, "Tails-Megaman", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/Tailsmega.lua") end)
+crearToggle(SettingsFrame, "Alan (tails)", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/alantails.lua") end)
+crearToggle(SettingsFrame, "Sonic Miku", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/sonicmiku.lua") end)
+crearToggle(SettingsFrame, "Sonic-Scourge", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/scourgenormal") end)
+crearToggle(SettingsFrame, "Sonic TD", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/sonictd.lua") end)
+crearToggle(SettingsFrame, "Silver-LinternaVerde", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/silverLinVerde.lua") end)
+crearToggle(SettingsFrame, "BurningBlaze", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/BurningBlaze.lua") end)
+crearToggle(SettingsFrame, "Jesse (knuckles)", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/jesseknuckles.lua") end)
+
 
 crearCategoria(SettingsFrame, "Misc", colorCian)
 
