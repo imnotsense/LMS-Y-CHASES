@@ -213,7 +213,7 @@ local globalEmoteVolume = 1
 local ScreenGui = Instance.new("ScreenGui")
 local exitoGui, _ = pcall(function() ScreenGui.Parent = CoreGui end)
 if not exitoGui then ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
-ScreenGui.Name = "Frostter UI V2.0"
+ScreenGui.Name = "Frostter UI V3.0"
 ScreenGui.ResetOnSpawn = false
 
 local ColorAcento1 = Color3.fromRGB(0, 255, 204)
@@ -260,7 +260,7 @@ local BetaWatermark = Instance.new("TextLabel")
 BetaWatermark.Size = UDim2.new(0, 100, 0, 15)
 BetaWatermark.Position = UDim2.new(0, 10, 0.5, 0)
 BetaWatermark.BackgroundTransparency = 1
-BetaWatermark.Text = "Frostter UI"
+BetaWatermark.Text = "Frostter UI V3.0"
 BetaWatermark.TextColor3 = ColorAcento1
 BetaWatermark.TextTransparency = 0.2
 BetaWatermark.Font = Enum.Font.GothamBlack
@@ -397,7 +397,7 @@ if EsDesarrollador then
 end
 
 local function updateTabs(activeFrame)
-    SettingsFrame.Visible = activeFrame == "Principal"
+    SettingsFrame.Visible = activeFrame == "Ajustes"
     EmotesFrame.Visible = activeFrame == "Emotes"
     CustomFrame.Visible = activeFrame == "Personalizar"
     if EsDesarrollador then DevFrame.Visible = activeFrame == "Dev" end
@@ -410,7 +410,7 @@ local TabDropdownBtn = Instance.new("TextButton")
 TabDropdownBtn.Size = UDim2.new(1, -40, 0, 36)
 TabDropdownBtn.Position = UDim2.new(0, 20, 0, 60)
 TabDropdownBtn.BackgroundColor3 = Color3.fromRGB(20, 15, 25)
-TabDropdownBtn.Text = "Pestaña: Principal ▼"
+TabDropdownBtn.Text = "Pestaña: Ajuates ▼"
 TabDropdownBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 TabDropdownBtn.Font = Enum.Font.GothamBold
 TabDropdownBtn.TextSize = 12
@@ -439,7 +439,7 @@ local TabLayout = Instance.new("UIListLayout")
 TabLayout.SortOrder = Enum.SortOrder.LayoutOrder
 TabLayout.Parent = TabDropdownList
 
-local listaPestanas = {"Principal", "Emotes", "Personalizar"}
+local listaPestanas = {"Ajustes", "Emotes", "Personalizar"}
 if EsDesarrollador then table.insert(listaPestanas, "Dev") end
 
 for i, tabName in ipairs(listaPestanas) do
@@ -477,7 +477,7 @@ TabDropdownBtn.MouseButton1Click:Connect(function()
     TabDropdownList.Visible = not TabDropdownList.Visible
 end)
 
-updateTabs("Pricipal")
+updateTabs("Ajustes")
 if TabDropdownList:FindFirstChildWhichIsA("TextButton") then
     local primerBtn = TabDropdownList:FindFirstChildWhichIsA("TextButton")
     primerBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
