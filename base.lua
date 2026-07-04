@@ -1327,6 +1327,7 @@ crearToggle(SettingsFrame, "Paced Fleetway", false, colorSkins, function(v) mane
 crearToggle(SettingsFrame, "2011X Fleetway", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/2011xfleetway.lua") end)
 crearToggle(SettingsFrame, "Alan (tails)", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/alantails.lua") end)
 crearToggle(SettingsFrame, "Jesse (knuckles)", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/jesseknuckles.lua") end)
+crearToggle(SettingsFrame, "Sonic TD", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/sonictd.lua") end)
 crearToggle(SettingsFrame, "negagen fleetway", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/negagenfleetway.lua") end)
 
 crearCategoria(SettingsFrame, "Misc", colorCian)
