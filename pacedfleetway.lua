@@ -1,4 +1,4 @@
-      srggggggggggggggggggggggggggggggggggggggggggggggglocal Players = game:GetService("Players")
+local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
