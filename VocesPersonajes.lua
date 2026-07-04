@@ -239,7 +239,17 @@ end)
 local function playSound(assetPath)
     local sound = Instance.new("Sound")
     sound.SoundId = assetPath
-    sound.Volume = 1
+    
+    -- 1. Aumentamos el volumen base nativo (puedes subirlo hasta 10)
+    sound.Volume = 5 
+    
+    -- 2. Añadimos un Compresor para amplificar los decibelios digitalmente
+    local compressor = Instance.new("CompressorSoundEffect")
+    -- MakeupGain empuja el volumen más allá del límite estándar. 
+    -- Si suena muy saturado, bájalo a 10. Si le falta fuerza, súbelo a 20.
+    compressor.MakeupGain = 15 
+    compressor.Parent = sound
+
     sound.Parent = SoundService 
     sound:Play()
     
@@ -253,6 +263,7 @@ local function playRandomSound(assetTable)
     local selectedAsset = assetTable[math.random(1, #assetTable)]
     playSound(selectedAsset)
 end
+
 
 ---------------------------------------------------------
 -- 4. CAPTURAR LA INTENCIÓN DEL JUGADOR
