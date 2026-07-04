@@ -215,13 +215,17 @@ local function setupCharacter(char)
 		end
 		newHrp.CFrame = hrp.CFrame
 		
+		-- Ocultado agresivo del modelo predeterminado para evitar superposiciones
 		if oldVisual and oldVisual.Parent then
 			local defaultFolder = oldVisual:FindFirstChild("Default")
 			if defaultFolder then
-				local waist = defaultFolder:FindFirstChild("Waist")
-				local hrpDef = defaultFolder:FindFirstChild("HumanoidRootPart")
-				if waist and waist:IsA("BasePart") and waist.Transparency ~= 1 then waist.Transparency = 1 end
-				if hrpDef and hrpDef:IsA("BasePart") and hrpDef.Transparency ~= 1 then hrpDef.Transparency = 1 end
+				for _, v in ipairs(defaultFolder:GetDescendants()) do
+					if v:IsA("BasePart") and v.Transparency ~= 1 then
+						v.Transparency = 1
+					elseif (v:IsA("Decal") or v:IsA("Texture") or v:IsA("SurfaceAppearance")) and v.Transparency ~= 1 then
+						v.Transparency = 1
+					end
+				end
 			end
 		end
 	end)
@@ -267,7 +271,6 @@ local function setupIdleAnimation(char)
 		currentIdleTrack:Play()
 	end
 
-	-- Bucle pasivo en lugar de Heartbeat (ahorra mucha CPU)
 	task.spawn(function()
 		while idleLoopActive and hum and hum.Parent do
 			local state = hum:GetState()
@@ -306,9 +309,21 @@ local function stopScript()
 	if idleTrack then idleTrack:Stop() idleTrack = nil end
 	if syncConn then syncConn:Disconnect() syncConn = nil end
 	if currentMdl and currentMdl.Parent then currentMdl:Destroy() currentMdl = nil end
+	
+	-- Restaurar visuales si cambiaste de personaje
 	if character then
 		for _, v in ipairs(character:GetDescendants()) do
-			if v:IsA("BasePart") then v.Transparency = 0 end
+			if v:IsA("BasePart") and v.Name ~= "HumanoidRootPart" then v.Transparency = 0 end
+		end
+	end
+	local oldVisual = getPlayerModel()
+	if oldVisual then
+		local defaultFolder = oldVisual:FindFirstChild("Default")
+		if defaultFolder then
+			for _, v in ipairs(defaultFolder:GetDescendants()) do
+				if v:IsA("BasePart") and v.Name ~= "HumanoidRootPart" then v.Transparency = 0 end
+				if v:IsA("Decal") or v:IsA("Texture") or v:IsA("SurfaceAppearance") then v.Transparency = 0 end
+			end
 		end
 	end
 end
