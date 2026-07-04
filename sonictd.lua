@@ -12,7 +12,6 @@ local function loadAsset(id)
 	if not ok or not objects or #objects == 0 then return nil end
 	return objects[1]:Clone()
 end
-
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -22,22 +21,14 @@ local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-
 local isScriptActive = false
 local animationConnections = {}
 local meshReplacementConnection = nil
 local SPINDASH_ASSET_ID = 101793601224039
 local ASSET_ID = 139380678110348
-
--- Variables globales
-local currentCustomModel = nil
-local currentSyncConn = nil
-local currentCustomAnimator = nil
-local originalCustomTransparency = {}
 local currentSpindashModel = nil
 local spindashSpinConnection = nil
 local spindashSpeedBoostConnection = nil
-
 local isSpindashActive = false
 local spindashSpeedBoost = 2
 local spindashTargetSpeed = 2
@@ -52,7 +43,6 @@ local isDropDashActive = false
 local lastImageRectOffset = Vector2.new(0, 0)
 local dropDashCheckConnection = nil
 local isHoldingInput = true
-
 local function onInputBegan(input, gp)
 	if gp then return end
 	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -71,13 +61,11 @@ local function onInputEnded(input, gp)
 end
 UserInputService.InputBegan:Connect(onInputBegan)
 UserInputService.InputEnded:Connect(onInputEnded)
-
 local function setCharacterSpeedBoost(value)
 	if character and character.Parent then
 		character:SetAttribute("SpeedBoost", value)
 	end
 end
-
 local function stopSpindashSpeedBoost()
 	isSpindashActive = false
 	if spindashSpeedBoostConnection then
@@ -86,7 +74,6 @@ local function stopSpindashSpeedBoost()
 	end
 	setCharacterSpeedBoost(1)
 end
-
 local function startSpindashSpeedBoost()
 	if spindashSpeedBoostConnection then return end
 	isSpindashActive = true
@@ -121,24 +108,6 @@ local function startSpindashSpeedBoost()
 		end
 	end)
 end
-
--- Funciones para ocultar/mostrar a Sonic al hacer Spindash/Dropdash
-local function hideCustomCharacter()
-	if currentCustomModel then
-		for part, _ in pairs(originalCustomTransparency) do
-			if part and part.Parent then part.Transparency = 1 end
-		end
-	end
-end
-
-local function showCustomCharacter()
-	if currentCustomModel then
-		for part, trans in pairs(originalCustomTransparency) do
-			if part and part.Parent then part.Transparency = trans end
-		end
-	end
-end
-
 local function stopSpindashFollow()
 	if spindashSpinConnection then
 		spindashSpinConnection:Disconnect()
@@ -148,9 +117,6 @@ local function stopSpindashFollow()
 		currentSpindashModel:Destroy()
 		currentSpindashModel = nil
 	end
-	
-	showCustomCharacter() -- Restaurar visibilidad de Sonic
-	
 	local playersFolder = workspace:FindFirstChild("Players")
 	if playersFolder then
 		local playerFolder = playersFolder:FindFirstChild(player.Name)
@@ -166,7 +132,6 @@ local function stopSpindashFollow()
 	end
 	stopSpindashSpeedBoost()
 end
-
 local function stopPeelOutSpeedBoost() end
 local function startPeelOutSpeedBoost() end
 
@@ -177,40 +142,8 @@ end
 local function unfreezePlayer()
 	humanoid.WalkSpeed = 16
 end
-
 local stopPeelOut = nil
 local monitorPeelOutSounds = nil
-
--- Nuevo Spindash Exclusivo para Dropdash
-local function activateDropDashSpindash()
-	if currentSpindashModel then return end
-	local ok, objects = pcall(game.GetObjects, game, "rbxassetid://" .. SPINDASH_ASSET_ID)
-	if ok and objects and #objects > 0 then
-		local newMesh = objects[1]:Clone()
-		local inserted = newMesh:IsA("BasePart") and newMesh or (newMesh.PrimaryPart or newMesh:FindFirstChildWhichIsA("BasePart"))
-		
-		newMesh.Parent = workspace
-		if inserted then
-			inserted.Anchored = false
-			inserted.CanCollide = false
-			currentSpindashModel = newMesh
-			
-			hideCustomCharacter() -- Oculta a Sonic
-			
-			if spindashSpinConnection then spindashSpinConnection:Disconnect() end
-			spindashSpinConnection = RunService.Heartbeat:Connect(function()
-				if not currentSpindashModel or not currentSpindashModel.Parent or not humanoidRootPart or not humanoidRootPart.Parent then
-					stopSpindashFollow()
-					return
-				end
-				inserted.CFrame = humanoidRootPart.CFrame * CFrame.new(0, 0, 0)
-			end)
-		else
-			newMesh:Destroy()
-		end
-	end
-end
-
 local function detectDropDash()
 	local playerGui = player:WaitForChild("PlayerGui", 5)
 	if not playerGui then return end
@@ -234,16 +167,13 @@ local function detectDropDash()
 				if isPeelOutActive and stopPeelOut then
 					stopPeelOut()
 				end
-				activateDropDashSpindash() -- Activar el Spindash del Dropdash
-			elseif currentOffset == Vector2.new(0, 0) and isDropDashActive then
+			elseif currentOffset == Vector2.new(0, 0) then
 				isDropDashActive = false
-				stopSpindashFollow()
 			end
 			lastImageRectOffset = currentOffset
 		end
 	end)
 end
-
 local function replacePlayerFrame()
 	local playerGui = player:WaitForChild("PlayerGui", 5)
 	if not playerGui then return end
@@ -276,13 +206,14 @@ local function replacePlayerFrame()
 		end
 	end
 end
-
 local function startSpindashFollow()
 	if not currentSpindashModel then return end
 	local spindashFolder = currentSpindashModel.Parent
 	local spindashPart = spindashFolder and spindashFolder:FindFirstChild("Spindash")
 	if not spindashPart then return end
-	if spindashSpinConnection then spindashSpinConnection:Disconnect() end
+	if spindashSpinConnection then
+		spindashSpinConnection:Disconnect()
+	end
 	spindashSpinConnection = RunService.Heartbeat:Connect(function()
 		if not currentSpindashModel or not currentSpindashModel.Parent or not spindashPart or not spindashPart.Parent then
 			if spindashSpinConnection then
@@ -304,7 +235,6 @@ local function startSpindashFollow()
 		end
 	end)
 end
-
 local function replaceSpindashMesh()
 	local playersFolder = workspace:FindFirstChild("Players")
 	if not playersFolder then return end
@@ -340,8 +270,6 @@ local function replaceSpindashMesh()
 						descendant.Enabled = false
 					end
 				end
-				
-				hideCustomCharacter() -- Ocultar al personaje durante Spindash Normal
 				startSpindashFollow()
 				startSpindashSpeedBoost()
 			else
@@ -416,10 +344,16 @@ end
 
 local function setupSonicViewport()
 	local ok, viewportFrame = pcall(function()
-		return player.PlayerGui:WaitForChild("Round", 30):WaitForChild("Game", 30):WaitForChild("SurvivorHP", 30):WaitForChild("ViewportFrame", 30)
+		return player.PlayerGui
+			:WaitForChild("Round", 30)
+			:WaitForChild("Game", 30)
+			:WaitForChild("SurvivorHP", 30)
+			:WaitForChild("ViewportFrame", 30)
 	end)
 	if not ok or not viewportFrame then return end
-	local viewportModel = viewportFrame:WaitForChild("WorldModel", 30):WaitForChild("Default", 30)
+	local viewportModel = viewportFrame
+		:WaitForChild("WorldModel", 30)
+		:WaitForChild("Default", 30)
 	local assetId = "139380678110348"
 	local function replaceViewportModel()
 		local ok2, objects = pcall(game.GetObjects, game, "rbxassetid://" .. assetId)
@@ -469,7 +403,9 @@ local function setupSonicViewport()
 	local function playViewportAnimation(animName)
 		if not viewportHumanoid then return end
 		for _, animData in pairs(viewportAnimations) do
-			if animData.track and animData.track.IsPlaying then animData.track:Stop() end
+			if animData.track and animData.track.IsPlaying then
+				animData.track:Stop()
+			end
 		end
 		local animData = viewportAnimations[animName]
 		if animData then
@@ -481,19 +417,30 @@ local function setupSonicViewport()
 	local viewportUpdateInterval = 0.1
 	local function updateViewportAnimations()
 		local currentTime = tick()
-		if currentTime - lastViewportUpdate < viewportUpdateInterval then return end
+		if currentTime - lastViewportUpdate < viewportUpdateInterval then
+			return
+		end
 		lastViewportUpdate = currentTime
+		
 		local newAnimation = "Idle"
 		if viewportHumanoid then
 			if viewportHumanoid.MoveDirection.Magnitude > 0.1 then
 				if viewportHumanoid:GetState() == Enum.HumanoidStateType.Running then
-					if viewportHumanoid.WalkSpeed > 16 then newAnimation = "Run" else newAnimation = "Walk" end
+					if viewportHumanoid.WalkSpeed > 16 then
+						newAnimation = "Run"
+					else
+						newAnimation = "Walk"
+					end
 				end
 			else
 				local state = viewportHumanoid:GetState()
-				if state == Enum.HumanoidStateType.Jumping then newAnimation = "Jump"
-				elseif state == Enum.HumanoidStateType.Freefall then newAnimation = "Fall"
-				else newAnimation = "Idle" end
+				if state == Enum.HumanoidStateType.Jumping then
+					newAnimation = "Jump"
+				elseif state == Enum.HumanoidStateType.Freefall then
+					newAnimation = "Fall"
+				else
+					newAnimation = "Idle"
+				end
 			end
 		end
 		if newAnimation ~= currentViewportAnimation then
@@ -516,15 +463,21 @@ local function setupSonicViewport()
 end
 
 local function loadCustomAsset(url, filename)
-	if not isfile(filename) then writefile(filename, game:HttpGet(url)) end
+	if not isfile(filename) then
+		writefile(filename, game:HttpGet(url))
+	end
 	return getcustomasset(filename)
 end
 
-local DEFAULT_MUSIC = loadCustomAsset("https://github.com/mrxstardex/TDSONICLMS/raw/refs/heads/main/TDSONICLMS.mp3", "TDSONICLMS.mp3")
+local DEFAULT_MUSIC = loadCustomAsset(
+	"https://github.com/mrxstardex/TDSONICLMS/raw/refs/heads/main/TDSONICLMS.mp3",
+	"TDSONICLMS.mp3"
+)
 
 local function setupSonicMusic()
 	if not isScriptActive then return end
-	local theme = game:GetService("ReplicatedStorage"):FindFirstChild("ClientAssets")
+	local theme = game:GetService("ReplicatedStorage")
+		:FindFirstChild("ClientAssets")
 		and game.ReplicatedStorage.ClientAssets:FindFirstChild("Sounds")
 		and game.ReplicatedStorage.ClientAssets.Sounds:FindFirstChild("mus")
 		and game.ReplicatedStorage.ClientAssets.Sounds.mus:FindFirstChild("Game")
@@ -566,9 +519,14 @@ local function isLastLife()
 	return model and model:GetAttribute("LastLife") == true
 end
 
+-- Variables globales nuevas para rastrear el modelo y su conexión
+local currentCustomModel = nil
+local currentSyncConn = nil
+
 local function setupCharacter(char)
 	if not isScriptActive then return end
 	
+	-- Limpiar el modelo fantasma si existía uno anteriormente
 	if currentCustomModel then
 		currentCustomModel:Destroy()
 		currentCustomModel = nil
@@ -577,31 +535,24 @@ local function setupCharacter(char)
 		currentSyncConn:Disconnect()
 		currentSyncConn = nil
 	end
-	currentCustomAnimator = nil
 
-	-- Ocultar partes del personaje EXCEPTO los accesorios y herramientas
+	local originalParts = {}
 	for _, v in ipairs(char:GetDescendants()) do
-		if v:IsA("BasePart") and not v.Parent:IsA("Accessory") and not v.Parent:IsA("Tool") then
-			v.Transparency = 1 
-		elseif v:IsA("Decal") and v.Name == "face" then
-			v.Transparency = 1
-		end
+		if v:IsA("BasePart") then table.insert(originalParts, v) end
 	end
-	
+	for _, part in ipairs(originalParts) do part.Transparency = 1 end
 	local playersFolder = workspace:FindFirstChild("Players")
 	local oldVisual = playersFolder and playersFolder:FindFirstChild(player.Name)
 	if oldVisual then
 		for _, v in ipairs(oldVisual:GetDescendants()) do
-			if v:IsA("BasePart") and not v.Parent:IsA("Accessory") and not v.Parent:IsA("Tool") then 
-				v.Transparency = 1 
-			end
+			if v:IsA("BasePart") then v.Transparency = 1 end
 		end
 	end
 	
 	local mdl = loadAsset(ASSET_ID)
 	if not mdl then return end
 	
-	currentCustomModel = mdl
+	currentCustomModel = mdl -- Guardamos el nuevo modelo en la variable
 
 	if oldVisual then mdl.Parent = oldVisual else mdl.Parent = char end
 	
@@ -612,13 +563,17 @@ local function setupCharacter(char)
 		local brokenFolder = mdl:FindFirstChild("Broken")
 		if brokenFolder then
 			for _, part in ipairs(brokenFolder:GetDescendants()) do
-				if part:IsA("BasePart") then part.Transparency = 0 end
+				if part:IsA("BasePart") then
+					part.Transparency = 0
+				end
 			end
 		end
 		local circularFolder = mdl:FindFirstChild("Circular")
 		if circularFolder then
 			for _, part in ipairs(circularFolder:GetDescendants()) do
-				if part:IsA("BasePart") then part.Transparency = 1 end
+				if part:IsA("BasePart") then
+					part.Transparency = 1
+				end
 			end
 		end
 	end
@@ -628,20 +583,14 @@ local function setupCharacter(char)
 	if not hrp or not newHrp then mdl:Destroy() return end
 	newHrp.Anchored = true
 	newHrp.Transparency = 1
-	
-	-- NO destruir el Humanoid de Sonic, solo guardar su Animator para darle vida
-	local customHum = mdl:FindFirstChildOfClass("Humanoid")
-	if customHum then
-		currentCustomAnimator = customHum:FindFirstChildOfClass("Animator")
-		if not currentCustomAnimator then
-			currentCustomAnimator = Instance.new("Animator", customHum)
-		end
-	end
-
-	originalCustomTransparency = {}
+	local existingHum = mdl:FindFirstChildOfClass("Humanoid")
+	if existingHum then existingHum:Destroy() end
+	local existingAnim = mdl:FindFirstChildOfClass("Animator")
+	if existingAnim then existingAnim:Destroy() end
+	local originalTransparency = {}
 	for _, v in ipairs(mdl:GetDescendants()) do
 		if v:IsA("BasePart") then
-			originalCustomTransparency[v] = v.Transparency
+			originalTransparency[v] = v.Transparency
 			v.CanCollide = false
 		end
 	end
@@ -657,40 +606,49 @@ local function setupCharacter(char)
 		end
 		newHrp.CFrame = hrp.CFrame * CFrame.new(0, 0, 0)
 	end)
-	currentSyncConn = syncConn
+	currentSyncConn = syncConn -- Guardamos la conexión
 	
 	local animateScript = char:FindFirstChild("Animate")
 	if animateScript then animateScript.Disabled = true end
 	
 	local function monitorLastLife()
 		while char and char.Parent do
-			local isLast = isLastLife()
+			local lastLifeActive = isLastLife()
 			local brokenFolder = mdl:FindFirstChild("Broken")
 			local circularFolder = mdl:FindFirstChild("Circular")
 			
-			if isLast then
+			if lastLifeActive then
 				if brokenFolder then
 					for _, part in ipairs(brokenFolder:GetDescendants()) do
-						if part:IsA("BasePart") then part.Transparency = 0 end
+						if part:IsA("BasePart") then
+							part.Transparency = 0
+						end
 					end
 				end
 				if circularFolder then
 					for _, part in ipairs(circularFolder:GetDescendants()) do
-						if part:IsA("BasePart") then part.Transparency = 1 end
+						if part:IsA("BasePart") then
+							part.Transparency = 1
+						end
 					end
 				end
 			else
 				if brokenFolder then
 					for _, part in ipairs(brokenFolder:GetDescendants()) do
-						if part:IsA("BasePart") then part.Transparency = 1 end
+						if part:IsA("BasePart") then
+							part.Transparency = 1
+						end
 					end
 				end
 				if circularFolder then
 					for _, part in ipairs(circularFolder:GetDescendants()) do
-						if part:IsA("BasePart") then part.Transparency = 0 end
+						if part:IsA("BasePart") then
+							part.Transparency = 0
+						end
 					end
 				end
 			end
+			
 			task.wait(0.5)
 		end
 	end
@@ -707,15 +665,22 @@ local function startScript()
 	monitorPeelOutSounds()
 	detectDropDash()
 	replacePlayerFrame()
-	if character then setupCharacter(character) end
+	if character then
+		setupCharacter(character)
+	end
 end
 
 local function stopScript()
 	if not isScriptActive then return end
 	isScriptActive = false
 	
-	if typeof(showWaitingNotification) == "function" then showWaitingNotification() end
+	-- NOTA: showWaitingNotification() no está definido en el código original, 
+	-- si causa error puedes comentarlo o definirlo arriba.
+	if typeof(showWaitingNotification) == "function" then
+		showWaitingNotification()
+	end
 	
+	-- Destruir modelo y reactivar animaciones estándar
 	if currentCustomModel then
 		currentCustomModel:Destroy()
 		currentCustomModel = nil
@@ -724,8 +689,6 @@ local function stopScript()
 		currentSyncConn:Disconnect()
 		currentSyncConn = nil
 	end
-	currentCustomAnimator = nil
-	
 	if character and character:FindFirstChild("Animate") then
 		character.Animate.Disabled = false
 	end
@@ -742,23 +705,29 @@ local function stopScript()
 		dropDashCheckConnection = nil
 	end
 	for _, connection in ipairs(animationConnections) do
-		if connection then connection:Disconnect() end
+		if connection then
+			connection:Disconnect()
+		end
 	end
 	animationConnections = {}
 	if meshReplacementConnection then
 		meshReplacementConnection:Disconnect()
 		meshReplacementConnection = nil
 	end
-	task.spawn(function()
+	if stopPeelOut then stopPeelOut() end
+		task.spawn(function()
 		task.wait(10)
-		local theme = game:GetService("ReplicatedStorage"):FindFirstChild("ClientAssets")
+		local theme = game:GetService("ReplicatedStorage")
+			:FindFirstChild("ClientAssets")
 			and game.ReplicatedStorage.ClientAssets:FindFirstChild("Sounds")
 			and game.ReplicatedStorage.ClientAssets.Sounds:FindFirstChild("mus")
 			and game.ReplicatedStorage.ClientAssets.Sounds.mus:FindFirstChild("Game")
 			and game.ReplicatedStorage.ClientAssets.Sounds.mus.Game:FindFirstChild("Round")
 			and game.ReplicatedStorage.ClientAssets.Sounds.mus.Game.Round:FindFirstChild("SoloTheme")
 			and game.ReplicatedStorage.ClientAssets.Sounds.mus.Game.Round.SoloTheme:FindFirstChild("SonicSolo")
-		if theme then theme:Stop() end
+		if theme then
+			theme:Stop()
+		end
 	end)
 end
 
@@ -773,7 +742,11 @@ local function onHeartbeat()
 		local sonicCheck = isSonic()
 		if sonicCheck ~= isCurrentlySonic then
 			isCurrentlySonic = sonicCheck
-			if isCurrentlySonic then startScript() else stopScript() end
+			if isCurrentlySonic then
+				startScript()
+			else
+				stopScript()
+			end
 		end
 	end
 end
@@ -781,10 +754,14 @@ local function checkCharacterAttribute() end
 local function monitorCharacterAttribute() end
 local currentAnimation = nil
 local animationsToDisable = {
-	"rbxassetid://106608035337434343447", "rbxassetid://9191426583290243434",
-	"rbxassetid://1381145986434514343434", "rbxassetid://12355823787878779758443434",
-	"rbxassetid://12830070429117134343434", "rbxassetid://8308909881303234343434",
-	"rbxassetid://1246987295976683434343343", "rbxassetid://7622317178271243434343434"
+	"rbxassetid://106608035337434343447",
+	"rbxassetid://9191426583290243434",
+	"rbxassetid://1381145986434514343434",
+	"rbxassetid://12355823787878779758443434",
+	"rbxassetid://12830070429117134343434",
+	"rbxassetid://8308909881303234343434",
+	"rbxassetid://1246987295976683434343343",
+	"rbxassetid://7622317178271243434343434"
 }
 local jumpStartTime = 0
 local jumpAnimationDuration = 0.6
@@ -796,23 +773,16 @@ local speedChangeThreshold = 2
 local isSpeedBoostActive = false
 local lastSpeedCheckTime = 0
 local speedCheckInterval = 0.1
-
--- ANIMACIONES REPARADAS: Se cargan en el rig de Sonic
 local function loadAnimation(animName)
 	local animData = ANIMATIONS[animName]
 	if not animData then return nil end
 	local animation = Instance.new("Animation")
 	animation.AnimationId = animData.id
-	
-	-- Priorizamos el Animator de Sonic, si no existe, usamos el original
-	local targetAnimator = currentCustomAnimator or humanoid:FindFirstChildOfClass("Animator") or humanoid
-	local track = targetAnimator:LoadAnimation(animation)
-	
+	local track = humanoid:LoadAnimation(animation)
 	track.Looped = animData.shouldLoop
 	animData.track = track
 	return track
 end
-
 local function playAnimation(animName)
 	for _, animData in pairs(ANIMATIONS) do
 		if animData.track and animData.track.IsPlaying then
@@ -824,21 +794,24 @@ local function playAnimation(animName)
 		if not animData.track then loadAnimation(animName) end
 		if animData.track then
 			animData.track:Play()
-			if animName == "Run" then animData.track:AdjustSpeed(2) end
+			if animName == "Run" then
+				animData.track:AdjustSpeed(2)
+			end
 		end
 	end
 end
-
 local function updateAnimations()
 	if not isScriptActive then return end
-	if isPeelOutActive then
+		if isPeelOutActive then
 		character:SetAttribute("SpeedBoost", 1.1)
 		isSpeedBoostActive = false
 		isRunning = false
 		stopSpindashSpeedBoost()
 		return
 	end
-	if isSpindashActive then return end
+		if isSpindashActive then
+		return
+	end
 	if not isSpindashActive and not isPeelOutActive and not isPeelOutReleasing then
 		local currentTime = tick()
 		if currentTime - lastSpeedCheckTime >= speedCheckInterval then
@@ -852,7 +825,9 @@ local function updateAnimations()
 				end
 				isSpeedBoostActive = true
 			elseif speedChange < -speedChangeThreshold or (currentWalkSpeed <= 16 and isSpeedBoostActive) then
-				if isRunning then isRunning = false end
+				if isRunning then
+					isRunning = false
+				end
 				isSpeedBoostActive = false
 				character:SetAttribute("SpeedBoost", 1)
 			end
@@ -865,9 +840,17 @@ local function updateAnimations()
 		if currentAnimation ~= "Jump" then jumpStartTime = tick() end
 		newAnimation = "Jump"
 	elseif state == Enum.HumanoidStateType.Freefall then
-		if tick() - jumpStartTime > jumpAnimationDuration then newAnimation = "Fall" else newAnimation = "Jump" end
+		if tick() - jumpStartTime > jumpAnimationDuration then
+			newAnimation = "Fall"
+		else
+			newAnimation = "Jump"
+		end
 	elseif humanoid.MoveDirection.Magnitude > 0.1 then
-		if humanoid.WalkSpeed > 16 then newAnimation = "Run" else newAnimation = "Walk" end
+		if humanoid.WalkSpeed > 16 then
+			newAnimation = "Run"
+		else
+			newAnimation = "Walk"
+		end
 	else
 		newAnimation = "Idle"
 	end
@@ -880,7 +863,9 @@ local function updateAnimations()
 			local runDuration = tick() - runStartTime
 			local newSpeedBoost = math.min(1 + (runDuration * speedBoostRate), 3)
 			local currentBoost = character:GetAttribute("SpeedBoost")
-			if currentBoost ~= nil then character:SetAttribute("SpeedBoost", newSpeedBoost) end
+			if currentBoost ~= nil then
+				character:SetAttribute("SpeedBoost", newSpeedBoost)
+			end
 		end
 	end
 	if newAnimation and newAnimation ~= currentAnimation then
@@ -888,12 +873,14 @@ local function updateAnimations()
 		currentAnimation = newAnimation
 	end
 end
-
 local lastDisableCheckTime = 0
 local disableCheckInterval = 0.5
+
 local function disableAnimations()
 	local currentTime = tick()
-	if currentTime - lastDisableCheckTime < disableCheckInterval then return end
+	if currentTime - lastDisableCheckTime < disableCheckInterval then
+		return
+	end
 	lastDisableCheckTime = currentTime
 	if not isScriptActive then return end
 	local animator = humanoid:FindFirstChildOfClass("Animator")
@@ -907,13 +894,13 @@ local function disableAnimations()
 		end
 	end
 end
-
 player.CharacterAdded:Connect(function(newChar)
 	character = newChar
 	humanoid = newChar:WaitForChild("Humanoid")
 	humanoidRootPart = newChar:WaitForChild("HumanoidRootPart")
 	playerModelCache = nil
 	
+	-- Se añade protección para aplicar animaciones/modelo SÓLO si el script sigue activo
 	if isScriptActive then
 		monitorSpindashMesh()
 		setupCharacter(newChar)
@@ -927,7 +914,9 @@ player.CharacterAdded:Connect(function(newChar)
 		playAnimation("Idle")
 		
 		for _, connection in ipairs(animationConnections) do
-			if connection then connection:Disconnect() end
+			if connection then
+				connection:Disconnect()
+			end
 		end
 		animationConnections = {}
 		
@@ -938,9 +927,13 @@ player.CharacterAdded:Connect(function(newChar)
 end)
 
 if monitorSpindashMesh then monitorSpindashMesh() end
-if setupCharacter and character and isScriptActive then setupCharacter(character) end
+if setupCharacter and character and isScriptActive then
+	setupCharacter(character)
+end
 if isScriptActive then
-	for name in pairs(ANIMATIONS) do loadAnimation(name) end
+	for name in pairs(ANIMATIONS) do
+		loadAnimation(name)
+	end
 	playAnimation("Idle")
 	if humanoid then
 		table.insert(animationConnections, humanoid.StateChanged:Connect(updateAnimations))
@@ -948,7 +941,6 @@ if isScriptActive then
 		table.insert(animationConnections, RunService.Heartbeat:Connect(disableAnimations))
 	end
 end
-
 task.spawn(function()
 	while true do
 		local playersFolder = workspace:FindFirstChild("Players")
@@ -967,7 +959,6 @@ task.spawn(function()
 		task.wait(0.1)
 	end
 end)
-
 stopPeelOut = function()
 	isPeelOutActive = false
 	isHoldingPeelOut = false
@@ -978,6 +969,8 @@ stopPeelOut = function()
 	isSpeedBoostActive = false
 	runStartTime = tick()
 	character:SetAttribute("SpeedBoost", 1.1)
+	-- playAnimation("SuperRun")
+	-- currentAnimation = "SuperRun"
 	task.spawn(function()
 		task.wait(0.5)
 		isPeelOutReleasing = false
@@ -1016,7 +1009,9 @@ monitorPeelOutSounds = function()
 		end
 	end)
 	RunService.Heartbeat:Connect(function()	
-		if tick() % 0.2 < 0.1 then checkForSounds() end
+		if tick() % 0.2 < 0.1 then
+			checkForSounds()
+		end
 	end)
 	checkForSounds()
 end
@@ -1025,11 +1020,13 @@ local initialSonic = isSonic()
 if initialSonic then
 	startScript()
 else
-	if typeof(showWaitingNotification) == "function" then showWaitingNotification() end
+	-- NOTA: showWaitingNotification() no está en el script original
+	if typeof(showWaitingNotification) == "function" then
+		showWaitingNotification()
+	end
 end
 isCurrentlySonic = initialSonic
 RunService.Heartbeat:Connect(onHeartbeat)
 local function easeInOutQuad(t)
 	return t < 0.5 and 2 * t * t or -1 + (4 - 2 * t) * t
 end
-
