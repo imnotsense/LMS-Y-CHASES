@@ -1281,7 +1281,7 @@ crearCategoria(SettingsFrame, "Selección de Personaje Automática", colorAutoSe
 
 -- Variables y Remoto
 local VoteRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Voted")
-local listaAutoPick = {"Sonic", "Amy", "Eggman", "Cream", "Tails", "Knuckles", "MetalSonic", "Blaze", "Silver"}
+local listaAutoPick = {"Sonic", "Amy", "Eggman", "Cream", "Tails", "Knuckles", "MetalSonic", "Blaze", "Silver", "Shadow"}
 local personajeAutoPick = listaAutoPick[1]
 local autoPickActivo = false
 
@@ -1341,7 +1341,6 @@ BtnPrincipal.MouseButton1Click:Connect(function()
     ListaFrame.Visible = isDropdownOpen
     BtnPrincipal.Text = "Personaje: " .. string.upper(personajeAutoPick) .. (isDropdownOpen and " ▲" or " ▼")
     
-    -- Expande el contenedor dinámicamente si tu menú lo requiere
     if isDropdownOpen then
         DropdownContainer.AutomaticSize = Enum.AutomaticSize.Y
     else
@@ -1362,7 +1361,6 @@ for _, personaje in ipairs(listaAutoPick) do
     OpcionBtn.Text = string.upper(personaje)
     OpcionBtn.Parent = ListaFrame
 
-    -- Efecto visual al pasar el cursor
     OpcionBtn.MouseEnter:Connect(function() OpcionBtn.BackgroundTransparency = 0.5 end)
     OpcionBtn.MouseLeave:Connect(function() OpcionBtn.BackgroundTransparency = 1 end)
 
@@ -1376,33 +1374,30 @@ for _, personaje in ipairs(listaAutoPick) do
     end)
 end
 
--- Toggle para activar/desactivar la función
-crearToggle(SettingsFrame, "Activar Auto selección", false, colorAutoSelect, function(valor)
+-- Toggle para activar/desactivar la función (Texto modificado)
+crearToggle(SettingsFrame, "Activar Auto Selección", false, colorAutoSelect, function(valor)
     autoPickActivo = valor
 end)
 
--- Lógica de fondo para el Auto Pick
+-- Lógica de fondo para el Auto Pick (Instantáneo)
 task.spawn(function()
     local playerGui = LocalPlayer:WaitForChild("PlayerGui")
     while true do
-        task.wait(0.3)
+        task.wait(0.05) -- Frecuencia de escaneo ultrarrápida (20 veces por segundo)
         
         if autoPickActivo and personajeAutoPick then
             local gameUI = playerGui:FindFirstChild("GameUI")
             local charSelect = gameUI and gameUI:FindFirstChild("CharSelect")
             
+            -- Detecta el momento exacto en el que existe la interfaz de selección
             if charSelect and charSelect.Visible == true then
-                task.wait(1)
+                pcall(function()
+                    -- Envía la señal de selección de manera inmediata
+                    VoteRemote:FireServer(personajeAutoPick)
+                end)
                 
-                local freshUI = playerGui:FindFirstChild("GameUI")
-                local freshSelect = freshUI and freshUI:FindFirstChild("CharSelect")
-                
-                if autoPickActivo and personajeAutoPick and freshSelect and freshSelect.Visible == true then
-                    pcall(function()
-                        VoteRemote:FireServer(personajeAutoPick)
-                    end)
-                end
-                
+                -- Pausa el escaneo intensivo mientras el CharSelect siga en pantalla 
+                -- para evitar saturar el servidor con remotos (Remote Spamming)
                 repeat 
                     task.wait(0.5)
                     local checkUI = playerGui:FindFirstChild("GameUI")
@@ -1413,6 +1408,7 @@ task.spawn(function()
     end
 end)
 -- ============================================================================
+
 
 crearCategoria(SettingsFrame, "Visual", colorVioleta)
 crearToggle(SettingsFrame, "Quitar Atmósfera (Anti-Lag)", false, colorVioleta, manejarAtmosfera)
