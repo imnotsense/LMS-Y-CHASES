@@ -59,12 +59,12 @@ local EsDesarrollador = table.find(UsuariosDEV, LocalPlayer.Name) ~= nil
 
 local Atmosfera_Quitada = false
 local Chase_Activo = true
-local Fleetway_LMS_Activo = true
+local Fleetway_LMS_Activo = false
 local LMS_Estados = {} 
 
 -- Amplificadores de volumen hardcodeados
-local SoloTheme_Volume_Multiplier = 2 
-local Voices_Volume_Multiplier = 8 
+local SoloTheme_Volume_Multiplier = 2
+local Voices_Volume_Multiplier = 2 
 
 local lmsOriginalIds = {}
 local chaseObjects = setmetatable({}, {__mode = "k"}) 
@@ -260,7 +260,7 @@ local BetaWatermark = Instance.new("TextLabel")
 BetaWatermark.Size = UDim2.new(0, 100, 0, 15)
 BetaWatermark.Position = UDim2.new(0, 10, 0.5, 0)
 BetaWatermark.BackgroundTransparency = 1
-BetaWatermark.Text = "Frostter UI V2.0"
+BetaWatermark.Text = "Frostter UI"
 BetaWatermark.TextColor3 = ColorAcento1
 BetaWatermark.TextTransparency = 0.2
 BetaWatermark.Font = Enum.Font.GothamBlack
@@ -410,7 +410,7 @@ local TabDropdownBtn = Instance.new("TextButton")
 TabDropdownBtn.Size = UDim2.new(1, -40, 0, 36)
 TabDropdownBtn.Position = UDim2.new(0, 20, 0, 60)
 TabDropdownBtn.BackgroundColor3 = Color3.fromRGB(20, 15, 25)
-TabDropdownBtn.Text = "Pestaña: Ajustes ▼"
+TabDropdownBtn.Text = "Pestaña: Principal ▼"
 TabDropdownBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 TabDropdownBtn.Font = Enum.Font.GothamBold
 TabDropdownBtn.TextSize = 12
@@ -439,7 +439,7 @@ local TabLayout = Instance.new("UIListLayout")
 TabLayout.SortOrder = Enum.SortOrder.LayoutOrder
 TabLayout.Parent = TabDropdownList
 
-local listaPestanas = {"Ajustes", "Emotes", "Personalizar"}
+local listaPestanas = {"Principal", "Emotes", "Personalizar"}
 if EsDesarrollador then table.insert(listaPestanas, "Dev") end
 
 for i, tabName in ipairs(listaPestanas) do
@@ -1273,6 +1273,69 @@ local function manejarCalidadEstetica(valor)
     end
 end
 
+-- ============================================================================
+-- SELECCIÓN DE PERSONAJE AUTOMÁTICA (AUTO PICK)
+-- ============================================================================
+local colorAutoSelect = Color3.fromRGB(255, 170, 0) -- Un tono naranja/dorado para destacar
+crearCategoria(SettingsFrame, "Selección de Personaje Automática", colorAutoSelect)
+
+-- Variables y Remoto
+local VoteRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Voted")
+local listaAutoPick = {"Sonic", "Amy", "Eggman", "Cream", "Tails", "Knuckles", "MetalSonic", "Blaze", "Silver", "Shadow"}
+local indiceAutoPick = 1
+local personajeAutoPick = listaAutoPick[indiceAutoPick]
+local autoPickActivo = false
+
+-- Botón para rotar entre personajes (Cíclico)
+local btnSeleccionPersonaje
+btnSeleccionPersonaje = crearBotonAccion(SettingsFrame, "Seleccionado: " .. string.upper(personajeAutoPick) .. " (Click para cambiar)", colorAutoSelect, function()
+    indiceAutoPick = (indiceAutoPick % #listaAutoPick) + 1
+    personajeAutoPick = listaAutoPick[indiceAutoPick]
+    if btnSeleccionPersonaje then
+        btnSeleccionPersonaje.Text = "Seleccionado: " .. string.upper(personajeAutoPick) .. " (Click para cambiar)"
+    end
+end)
+
+-- Toggle para activar/desactivar la función
+crearToggle(SettingsFrame, "Activar Auto Pick (4 Segundos)", false, colorAutoSelect, function(valor)
+    autoPickActivo = valor
+end)
+
+-- Lógica de fondo para el Auto Pick
+task.spawn(function()
+    local playerGui = LocalPlayer:WaitForChild("PlayerGui")
+    while true do
+        task.wait(0.3)
+        
+        if autoPickActivo and personajeAutoPick then
+            local gameUI = playerGui:FindFirstChild("GameUI")
+            local charSelect = gameUI and gameUI:FindFirstChild("CharSelect")
+            
+            if charSelect and charSelect.Visible == true then
+                task.wait(4) -- Espera los 4 segundos originales
+                
+                local freshUI = playerGui:FindFirstChild("GameUI")
+                local freshSelect = freshUI and freshUI:FindFirstChild("CharSelect")
+                
+                if autoPickActivo and personajeAutoPick and freshSelect and freshSelect.Visible == true then
+                    pcall(function()
+                        VoteRemote:FireServer(personajeAutoPick)
+                    end)
+                end
+                
+                -- Espera a que la pantalla de selección desaparezca para no spamear el remote
+                repeat 
+                    task.wait(0.5)
+                    local checkUI = playerGui:FindFirstChild("GameUI")
+                    charSelect = checkUI and checkUI:FindFirstChild("CharSelect")
+                until not charSelect or charSelect.Visible == false or not autoPickActivo
+            end
+        end
+    end
+end)
+-- ============================================================================
+
+
 crearCategoria(SettingsFrame, "Visual", colorVioleta)
 crearToggle(SettingsFrame, "Quitar Atmósfera (Anti-Lag)", false, colorVioleta, manejarAtmosfera)
 crearToggle(SettingsFrame, "Modo Patata (+FPS)", false, colorVioleta, function(valor)
@@ -1323,7 +1386,6 @@ crearToggle(SettingsFrame, "Tails-Megaman", false, colorSkins, function(v) manej
 crearToggle(SettingsFrame, "Alan (tails)", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/alantails.lua") end)
 crearToggle(SettingsFrame, "Sonic Miku", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/sonicmiku.lua") end)
 crearToggle(SettingsFrame, "Sonic-Scourge", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/scourgenormal") end)
-crearToggle(SettingsFrame, "Sonic TD", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/sonictd.lua") end)
 crearToggle(SettingsFrame, "Silver-LinternaVerde", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/silverLinVerde.lua") end)
 crearToggle(SettingsFrame, "BurningBlaze", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/BurningBlaze.lua") end)
 crearToggle(SettingsFrame, "Jesse (knuckles)", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/jesseknuckles.lua") end)
