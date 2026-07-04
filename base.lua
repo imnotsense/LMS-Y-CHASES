@@ -1281,7 +1281,7 @@ crearCategoria(SettingsFrame, "Selección de Personaje Automática", colorAutoSe
 
 -- Variables y Remoto
 local VoteRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Voted")
-local listaAutoPick = {"Sonic", "Amy", "Eggman", "Cream", "Tails", "Knuckles", "MetalSonic", "Blaze", "Silver", "Shadow"}
+local listaAutoPick = {"Sonic", "Amy", "Eggman", "Cream", "Tails", "Knuckles", "MetalSonic", "Blaze", "Silver"}
 local personajeAutoPick = listaAutoPick[1]
 local autoPickActivo = false
 
