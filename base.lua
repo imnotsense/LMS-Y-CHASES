@@ -5,7 +5,7 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
 local WhitelistUsuarios = {
-    ["TicoNutria"]=true, ["Metalix_24"]=true, ["periquitoRolox"]=true
+    ["TicoNutri"]=true, ["Metalix_24"]=true, ["periquitoRolox"]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true, ["  "]=true
 } 
 local UsuariosBaneados = {["UsuarioMalo1"]=true, ["UsuarioMalo2"]=true} 
 
@@ -31,12 +31,12 @@ if not WhitelistUsuarios[miNombre] then
     txt.TextColor3 = Color3.fromRGB(255, 50, 50)
     txt.TextScaled = true
     txt.Font = Enum.Font.GothamBlack
-    txt.Text = "SIN PERMISOS\n\nEste script es de uso privado"
+    txt.Text = "NO AUTORIZADO\n\nESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO ESTÚPIDO"
     
     local wlSound = Instance.new("Sound", bg)
-    wlSound.SoundId = "rbxassetid://138081509" 
+    wlSound.SoundId = "rbxassetid://2496367477" 
     wlSound.Looped = true
-    wlSound.Volume = 2
+    wlSound.Volume = 10
     wlSound:Play()
 
     return
