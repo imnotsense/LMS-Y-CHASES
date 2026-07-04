@@ -242,7 +242,7 @@ local function playSound(assetPath)
     
     -- 1. Aumentamos el volumen base nativo (puedes subirlo hasta 10)
     sound.Volume = 5 
-    
+     
     -- 2. Añadimos un Compresor para amplificar los decibelios digitalmente
     local compressor = Instance.new("CompressorSoundEffect")
     -- MakeupGain empuja el volumen más allá del límite estándar. 
