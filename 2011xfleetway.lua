@@ -2,25 +2,38 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
-local ASSET_ID = 107276204928112
-local ICON_ID = "rbxassetid://124989746342114"
+
+local ASSET_ID = 86271409527517
+local SPINDASH_ID = 107406580831332
+local ICON_ID = "rbxassetid://97774287604330"
+local IDLE_ANIM_ID = "rbxassetid://86229317461320"
+local IDLE_LOWHP_ANIM_ID = "rbxassetid://102209996601966"
+local LOW_HP_THRESHOLD = 150
+
 local isScriptActive = false
 local currentMdl = nil
 local syncConn = nil
 local idleTrack = nil
 local idleConn = nil
-local IDLE_ANIM_ID        = "rbxassetid://102209996601966"
-local IDLE_LOWHP_ANIM_ID  = "rbxassetid://102209996601966"
-local LOW_HP_THRESHOLD    = 150
 
-local function loadAsset(id)
+-- === SISTEMA DE CACHÉ PARA AHORRAR RAM ===
+local assetCache = {}
+
+local function getCachedAsset(id)
+	if assetCache[id] then
+		return assetCache[id]:Clone()
+	end
+	
 	local ok, objects = pcall(game.GetObjects, game, "rbxassetid://" .. id)
-	if not ok or not objects or #objects == 0 then
-		warn("[FLEETWAY] loadAsset falló para:", id, ok, objects)
+	if ok and objects and #objects > 0 then
+		assetCache[id] = objects[1]
+		return assetCache[id]:Clone()
+	else
+		warn("[FLEETWAY] Falló la carga del asset:", id)
 		return nil
 	end
-	return objects[1]:Clone()
 end
+-- =========================================
 
 local function getPlayerModel()
 	local playersFolder = workspace:FindFirstChild("Players")
@@ -33,20 +46,24 @@ local function isFleetway()
 end
 
 local function replacePlayerFrame()
-	local pg = player.PlayerGui
+	local pg = player:WaitForChild("PlayerGui", 5)
+	if not pg then return end
+	
 	local teamsGui = pg:FindFirstChild("Round") and pg.Round:FindFirstChild("Game") and pg.Round.Game:FindFirstChild("Teams")
 	if not teamsGui then return end
+	
 	local playerFrame = nil
 	for _ = 1, 20 do
 		playerFrame = teamsGui:FindFirstChild(player.Name)
 		if playerFrame then break end
 		task.wait(0.25)
 	end
+	
 	if not playerFrame then return end
 	local frame = playerFrame:FindFirstChild("Frame")
-	if not frame then return end
-	local cc = frame:FindFirstChild("Character")
+	local cc = frame and frame:FindFirstChild("Character")
 	if not cc then return end
+	
 	cc:ClearAllChildren()
 	local lbl = Instance.new("ImageLabel")
 	lbl.Image = ICON_ID
@@ -56,6 +73,7 @@ local function replacePlayerFrame()
 	lbl.BackgroundTransparency = 1
 	lbl.ScaleType = Enum.ScaleType.Fit
 	lbl.Parent = cc
+	
 	if cc:IsA("GuiObject") then cc.BackgroundTransparency = 1 end
 end
 
@@ -66,34 +84,42 @@ local function setupViewport()
 			:WaitForChild("Game", 30)
 			:WaitForChild("SurvivorHP", 30)
 			:WaitForChild("ViewportFrame", 30)
+		
 		if not viewportFrame then return end
+		
 		local viewportModel = viewportFrame
 			:WaitForChild("WorldModel", 30)
 			:WaitForChild("Default", 30)
+			
 		if not viewportModel then return end
 		local vpOverrideModel = nil
+
 		local function replaceViewportModel()
-			local ok, objects = pcall(game.GetObjects, game, "rbxassetid://" .. 107276204928112)
-			if not ok or #objects == 0 then return end
+			local newModel = getCachedAsset(ASSET_ID)
+			if not newModel then return end
+
 			if vpOverrideModel and vpOverrideModel.Parent then
 				vpOverrideModel:Destroy()
-				vpOverrideModel = nil
 			end
-			local newModel = objects[1]:Clone()
+			
 			vpOverrideModel = newModel
 			for _, part in ipairs(viewportModel:GetDescendants()) do
 				if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
 					part.Transparency = 1
 				end
 			end
+			
 			local newHum = newModel:FindFirstChildOfClass("Humanoid")
 			if newHum then newHum:Destroy() end
+			
 			for _, v in ipairs(newModel:GetDescendants()) do
 				if v:IsA("BasePart") then v.CanCollide = false end
 			end
+			
 			newModel.Parent = viewportModel
 			local viewportHRP = viewportModel:FindFirstChild("HumanoidRootPart")
 			local primaryPart = newModel.PrimaryPart or newModel:FindFirstChildWhichIsA("BasePart")
+			
 			if viewportHRP and primaryPart then
 				newModel:PivotTo(viewportHRP.CFrame)
 				primaryPart.Transparency = 1
@@ -103,7 +129,9 @@ local function setupViewport()
 				weld.Parent = viewportHRP
 			end
 		end
+		
 		replaceViewportModel()
+		
 		viewportModel.DescendantAdded:Connect(function()
 			task.wait(0.1)
 			if not vpOverrideModel or not vpOverrideModel.Parent then
@@ -119,15 +147,23 @@ local function setupCharacter(char)
 	if syncConn then syncConn:Disconnect() syncConn = nil end
 	if currentMdl and currentMdl.Parent then currentMdl:Destroy() currentMdl = nil end
 
-	local playersFolder = workspace:FindFirstChild("Players")
-	local oldVisual = playersFolder and playersFolder:FindFirstChild(player.Name)
+	local oldVisual = getPlayerModel()
 
-	for _, v in ipairs(char:GetDescendants()) do
-		if v:IsA("BasePart") then
-			v.Transparency = 1
-			if v.Name ~= "HumanoidRootPart" then v.CanCollide = false end
+	local function hideParts(modelToHide, exceptionModel)
+		for _, v in ipairs(modelToHide:GetDescendants()) do
+			if v:IsA("BasePart") then
+				if not exceptionModel or not v:IsDescendantOf(exceptionModel) then
+					v.Transparency = 1
+					if v.Name ~= "HumanoidRootPart" then v.CanCollide = false end
+				end
+			elseif v:IsA("Decal") or v:IsA("Texture") or v:IsA("SurfaceAppearance") then
+				pcall(function() v:Destroy() end)
+			end
 		end
 	end
+
+	hideParts(char, currentMdl)
+	
 	char.DescendantAdded:Connect(function(d)
 		if d:IsA("BasePart") and (not currentMdl or not d:IsDescendantOf(currentMdl)) then
 			d.Transparency = 1
@@ -136,38 +172,28 @@ local function setupCharacter(char)
 	end)
 
 	if oldVisual then
-		for _, v in ipairs(oldVisual:GetDescendants()) do
-			if v:IsA("BasePart") then v.Transparency = 1 end
-		end
+		hideParts(oldVisual, currentMdl)
 		oldVisual.DescendantAdded:Connect(function(d)
 			if d:IsA("BasePart") and currentMdl and not d:IsDescendantOf(currentMdl) then
 				d.Transparency = 1
 			end
 		end)
-	end
-
-	for _, v in ipairs(char:GetDescendants()) do
-		if v:IsA("Decal") or v:IsA("Texture") or v:IsA("SurfaceAppearance") then
-			pcall(function() v:Destroy() end)
-		end
-	end
-	if oldVisual then
-		for _, v in ipairs(oldVisual:GetDescendants()) do
-			if v:IsA("Decal") or v:IsA("Texture") or v:IsA("SurfaceAppearance") then
-				pcall(function() v:Destroy() end)
-			end
+		
+		local defaultFolder = oldVisual:FindFirstChild("Default")
+		if defaultFolder then
+			local waist = defaultFolder:FindFirstChild("Waist")
+			local hrpDef = defaultFolder:FindFirstChild("HumanoidRootPart")
+			if waist and waist:IsA("BasePart") then waist.Transparency = 1 end
+			if hrpDef and hrpDef:IsA("BasePart") then hrpDef.Transparency = 1 end
 		end
 	end
 
-	local mdl = loadAsset(ASSET_ID)
-	if not mdl then
-		warn("[FLEETWAY] modelo no cargó")
-		return
-	end
+	local mdl = getCachedAsset(ASSET_ID)
+	if not mdl then return end
 
-	if oldVisual then mdl.Parent = oldVisual else mdl.Parent = char end
+	mdl.Parent = oldVisual or char
 
-	local hrp = char:FindFirstChild("HumanoidRootPart")
+	local hrp = char:WaitForChild("HumanoidRootPart", 5)
 	local newHrp = mdl:FindFirstChild("HumanoidRootPart")
 	if not hrp or not newHrp then
 		mdl:Destroy()
@@ -200,11 +226,14 @@ local function setupCharacter(char)
 	local function replaceSpindash(spindashPart)
 		if spindashMdl and spindashMdl.Parent then return end
 		if not spindashPart or not spindashPart.Parent then return end
-		local ok, objects = pcall(game.GetObjects, game, "rbxassetid://" .. 71606479535182)
-		if not ok or not objects or #objects == 0 then return end
+		
+		local newSpin = getCachedAsset(SPINDASH_ID)
+		if not newSpin then return end
+		
 		spindashPart.Transparency = 1
-		spindashMdl = objects[1]:Clone()
+		spindashMdl = newSpin
 		local primaryPart = spindashMdl.PrimaryPart or spindashMdl:FindFirstChildWhichIsA("BasePart")
+		
 		if primaryPart then
 			for _, v in ipairs(spindashMdl:GetDescendants()) do
 				if v:IsA("BasePart") then
@@ -215,6 +244,7 @@ local function setupCharacter(char)
 			end
 			spindashMdl:PivotTo(spindashPart.CFrame)
 			spindashMdl.Parent = workspace
+			
 			local spinConn
 			spinConn = RunService.Stepped:Connect(function()
 				if not spindashPart or not spindashPart.Parent then
@@ -223,6 +253,7 @@ local function setupCharacter(char)
 				end
 				spindashMdl:PivotTo(spindashPart.CFrame)
 			end)
+			
 			spindashPart.AncestryChanged:Connect(function()
 				if not spindashPart.Parent then
 					if spindashMdl and spindashMdl.Parent then spindashMdl:Destroy() end
@@ -232,10 +263,8 @@ local function setupCharacter(char)
 		end
 	end
 
-	local playersF = workspace:FindFirstChild("Players")
-	local playerF = playersF and playersF:FindFirstChild(player.Name)
-	if playerF then
-		playerF.ChildAdded:Connect(function(child)
+	if oldVisual then
+		oldVisual.ChildAdded:Connect(function(child)
 			if child.Name == "Spindash" and child:IsA("BasePart") then
 				spindashMdl = nil
 				replaceSpindash(child)
@@ -250,26 +279,12 @@ local function setupCharacter(char)
 		end
 		newHrp.CFrame = hrp.CFrame
 	end)
-
-	task.spawn(function()
-		while char and char.Parent and isScriptActive do
-			if oldVisual and oldVisual.Parent then
-				local defaultFolder = oldVisual:FindFirstChild("Default")
-				if defaultFolder then
-					local waist = defaultFolder:FindFirstChild("Waist")
-					local hrpDef = defaultFolder:FindFirstChild("HumanoidRootPart")
-					if waist and waist:IsA("BasePart") then waist.Transparency = 1 end
-					if hrpDef and hrpDef:IsA("BasePart") then hrpDef.Transparency = 1 end
-				end
-			end
-			task.wait(0.1)
-		end
-	end)
 end
 
 local function setupIdleAnimation(char)
 	local hum = char:WaitForChild("Humanoid", 5)
 	if not hum then return end
+	
 	local animator = hum:FindFirstChildOfClass("Animator")
 	if not animator then
 		animator = Instance.new("Animator")
@@ -289,15 +304,16 @@ local function setupIdleAnimation(char)
 	local trackLowHp = animator:LoadAnimation(animLowHp)
 	trackLowHp.Looped = true
 
-	idleTrack = trackNormal
-
 	local currentIdleTrack = nil
 	local lastWasLowHp = nil
-
-	local function getHp()
-		local model = getPlayerModel()
-		local health = model and model:FindFirstChild("Health")
-		return health and health.Value or math.huge
+	
+	local healthObj = nil
+	local function getCachedHp()
+		if not healthObj or not healthObj.Parent then
+			local model = getPlayerModel()
+			healthObj = model and model:FindFirstChild("Health")
+		end
+		return healthObj and healthObj.Value or math.huge
 	end
 
 	local function switchIdle(useLowHp)
@@ -316,10 +332,10 @@ local function setupIdleAnimation(char)
 			if idleConn then idleConn:Disconnect() idleConn = nil end
 			return
 		end
+		
 		local state = hum:GetState()
 		local moving = hum.MoveDirection.Magnitude > 0.1
-		local inAir = state == Enum.HumanoidStateType.Jumping
-			or state == Enum.HumanoidStateType.Freefall
+		local inAir = state == Enum.HumanoidStateType.Jumping or state == Enum.HumanoidStateType.Freefall
 
 		if moving or inAir then
 			if currentIdleTrack and currentIdleTrack.IsPlaying then
@@ -328,7 +344,7 @@ local function setupIdleAnimation(char)
 			currentIdleTrack = nil
 			lastWasLowHp = nil
 		else
-			local isLowHp = getHp() <= LOW_HP_THRESHOLD
+			local isLowHp = getCachedHp() <= LOW_HP_THRESHOLD
 			switchIdle(isLowHp)
 		end
 	end)
@@ -373,11 +389,14 @@ player.CharacterAdded:Connect(function(newChar)
 end)
 
 local isCurrentlyFleetway = false
-RunService.Heartbeat:Connect(function()
-	local check = isFleetway()
-	if check ~= isCurrentlyFleetway then
-		isCurrentlyFleetway = check
-		if isCurrentlyFleetway then startScript() else stopScript() end
+task.spawn(function()
+	while true do
+		local check = isFleetway()
+		if check ~= isCurrentlyFleetway then
+			isCurrentlyFleetway = check
+			if isCurrentlyFleetway then startScript() else stopScript() end
+		end
+		task.wait(0.5)
 	end
 end)
 
@@ -385,3 +404,4 @@ if isFleetway() then
 	isCurrentlyFleetway = true
 	startScript()
 end
+
