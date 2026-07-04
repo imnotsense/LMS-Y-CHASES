@@ -328,7 +328,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -70, 1, 0)
 Title.Position = UDim2.new(0, 20, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "FROSTTER CONTROL (Abrir con K)"
+Title.Text = "FROSTTER UI V3.0 (Abrir con K)"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 16
@@ -397,7 +397,7 @@ if EsDesarrollador then
 end
 
 local function updateTabs(activeFrame)
-    SettingsFrame.Visible = activeFrame == "Ajustes"
+    SettingsFrame.Visible = activeFrame == "Principal"
     EmotesFrame.Visible = activeFrame == "Emotes"
     CustomFrame.Visible = activeFrame == "Personalizar"
     if EsDesarrollador then DevFrame.Visible = activeFrame == "Dev" end
