@@ -10,7 +10,7 @@ local currentMdl = nil
 local syncConn = nil
 local currentLMSMdl = nil
 local isInLMS = false
-local lmsMonitorActive = false
+local lmsModelConnection = nil
 
 -- Colores del spindash
 local SPINDASH_BALL_COLOR = Color3.fromRGB(17, 203, 29)       -- verde
@@ -25,6 +25,11 @@ end
 local function getPlayerModel()
 	local playersFolder = workspace:FindFirstChild("Players")
 	return playersFolder and playersFolder:FindFirstChild(player.Name)
+end
+
+local function isSonic()
+	local model = getPlayerModel()
+	return model and model:GetAttribute("Character") == "Sonic"
 end
 
 local function setupViewport()
@@ -42,12 +47,13 @@ local function setupViewport()
 
 		local vpOverrideModel = nil
 		local function replaceViewportModel()
-			local newModel = loadAsset(70498798267097)
-			if not newModel then return end
+			local ok, objects = pcall(game.GetObjects, game, "rbxassetid://" .. 70498798267097)
+			if not ok or #objects == 0 then return end
 			if vpOverrideModel and vpOverrideModel.Parent then
 				vpOverrideModel:Destroy()
 				vpOverrideModel = nil
 			end
+			local newModel = objects[1]:Clone()
 			vpOverrideModel = newModel
 			for _, part in ipairs(viewportModel:GetDescendants()) do
 				if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
@@ -93,7 +99,8 @@ local function setupCharacter(char)
 		if v:IsA("BasePart") then v.Transparency = 1 end
 	end
 
-	local oldVisual = getPlayerModel()
+	local playersFolder = workspace:FindFirstChild("Players")
+	local oldVisual = playersFolder and playersFolder:FindFirstChild(player.Name)
 	if oldVisual then
 		for _, v in ipairs(oldVisual:GetDescendants()) do
 			if v:IsA("BasePart") then v.Transparency = 1 end
@@ -137,19 +144,9 @@ local function setupCharacter(char)
 			return
 		end
 		newHrp.CFrame = hrp.CFrame
-		
-		-- Ocultar partes del modelo base de forma nativa sin bucles extra
-		if oldVisual and oldVisual.Parent then
-			local defaultFolder = oldVisual:FindFirstChild("Default")
-			if defaultFolder then
-				local waist = defaultFolder:FindFirstChild("Waist")
-				local hrpDef = defaultFolder:FindFirstChild("HumanoidRootPart")
-				if waist and waist:IsA("BasePart") and waist.Transparency ~= 1 then waist.Transparency = 1 end
-				if hrpDef and hrpDef:IsA("BasePart") and hrpDef.Transparency ~= 1 then hrpDef.Transparency = 1 end
-			end
-		end
 	end)
 
+	-- Deshabilitar trails/beams preexistentes en char; permitir solo los del Spindash
 	local existingCharTrails = {}
 	for _, d in ipairs(char:GetDescendants()) do
 		if d:IsA("Trail") or d:IsA("Beam") then
@@ -157,7 +154,7 @@ local function setupCharacter(char)
 			existingCharTrails[d] = true
 		end
 	end
-	
+	-- Nuevos trails que aparezcan en char (p. ej. Dropdash): colorear en verde claro
 	char.DescendantAdded:Connect(function(d)
 		if d:IsA("Trail") or d:IsA("Beam") then
 			task.wait()
@@ -168,42 +165,55 @@ local function setupCharacter(char)
 		end
 	end)
 
-	-- Bucle pasivo para forzar estados de Spindash y cabeza LMS
 	task.spawn(function()
 		while char and char.Parent and isScriptActive do
 			if oldVisual and oldVisual.Parent then
+				local defaultFolder = oldVisual:FindFirstChild("Default")
+				if defaultFolder then
+					local waist = defaultFolder:FindFirstChild("Waist")
+					local hrpDef = defaultFolder:FindFirstChild("HumanoidRootPart")
+					if waist and waist:IsA("BasePart") then waist.Transparency = 1 end
+					if hrpDef and hrpDef:IsA("BasePart") then hrpDef.Transparency = 1 end
+				end
+
+				-- Mantener trails/beams del modelo override deshabilitados (excepto Spindash)
 				for _, d in ipairs(oldVisual:GetDescendants()) do
 					if d:IsA("Trail") or d:IsA("Beam") then
-						if d.Enabled then d.Enabled = false end
+						d.Enabled = false
 					elseif d:IsA("BasePart") and d.Name == "Spindash" then
-						if d.Color ~= SPINDASH_BALL_COLOR then d.Color = SPINDASH_BALL_COLOR end
-						if d.Material ~= Enum.Material.SmoothPlastic then d.Material = Enum.Material.SmoothPlastic end
+						d.Color = SPINDASH_BALL_COLOR
+						d.Material = Enum.Material.SmoothPlastic
 					end
 				end
 			end
 
-			local HEAD_FORCE_TRANSPARENT = { Head = true, angry = true }
+			-- Forzar transparencia en partes de cabeza del char base que el juego puede restaurar
+			-- (incluyendo "angry" que solo aparece durante LMS)
+			local HEAD_FORCE_TRANSPARENT = {
+				Head  = true,
+				angry = true,
+			}
 			for _, d in ipairs(char:GetDescendants()) do
-				if d:IsA("BasePart") and HEAD_FORCE_TRANSPARENT[d.Name] and d.Transparency ~= 1 then
+				if d:IsA("BasePart") and HEAD_FORCE_TRANSPARENT[d.Name] then
 					d.Transparency = 1
 				end
 			end
-			
-			local spindashFolder = char:FindFirstChild("Spindash")
-			if spindashFolder then
-				for _, d in ipairs(spindashFolder:GetDescendants()) do
+			if char:FindFirstChild("Spindash") then
+				for _, d in ipairs(char.Spindash:GetDescendants()) do
 					if d:IsA("BasePart") then
-						if d.Color ~= SPINDASH_BALL_COLOR then d.Color = SPINDASH_BALL_COLOR end
-						if d.Material ~= Enum.Material.SmoothPlastic then d.Material = Enum.Material.SmoothPlastic end
+						d.Color = SPINDASH_BALL_COLOR
+						d.Material = Enum.Material.SmoothPlastic
 					elseif d:IsA("Trail") or d:IsA("Beam") then
-						if not d.Enabled then d.Enabled = true end
+						d.Enabled = true
 						d.Color = ColorSequence.new(SPINDASH_TRAIL_COLOR)
 					end
 				end
 			end
-			task.wait(0.25)
+
+			task.wait(0.1)
 		end
 	end)
+
 end
 
 -- ==================== LMS MODEL SWITCHER ====================
@@ -211,6 +221,7 @@ local function switchToLMSModel()
 	if isInLMS or not character then return end
 	isInLMS = true
 
+	-- Ocultar modelo normal
 	if currentMdl then
 		for _, v in ipairs(currentMdl:GetDescendants()) do
 			if v:IsA("BasePart") then v.Transparency = 1 end
@@ -219,15 +230,23 @@ local function switchToLMSModel()
 
 	if currentLMSMdl then currentLMSMdl:Destroy() currentLMSMdl = nil end
 
-	local lmsMdl = loadAsset(LMS_ASSET_ID)
-	if not lmsMdl then
+	local ok, objects = pcall(game.GetObjects, game, "rbxassetid://" .. LMS_ASSET_ID)
+	if not ok or #objects == 0 then
+		warn("No se pudo cargar el modelo LMS:", LMS_ASSET_ID)
 		isInLMS = false
 		return
 	end
+
+	local lmsMdl = objects[1]:Clone()
 	lmsMdl.Name = "LMS_Model"
 
-	local oldVisual = getPlayerModel()
-	if oldVisual then lmsMdl.Parent = oldVisual else lmsMdl.Parent = character end
+	local playersFolder = workspace:FindFirstChild("Players")
+	local visualFolder = playersFolder and playersFolder:FindFirstChild(player.Name)
+	if visualFolder then
+		lmsMdl.Parent = visualFolder
+	else
+		lmsMdl.Parent = character
+	end
 
 	local hrp = character:FindFirstChild("HumanoidRootPart")
 	local newHrp = lmsMdl:FindFirstChild("HumanoidRootPart") or lmsMdl:FindFirstChildWhichIsA("BasePart")
@@ -242,14 +261,24 @@ local function switchToLMSModel()
 		if anim then anim:Destroy() end
 
 		local lmsForceTransparent = {
-			HumanoidRootPart = true, Waist = true, LFoot = true, RFoot = true,
-			angry = true, ["Sphere.003"] = true, ["Sphere.006"] = true,
-			["Sphere.007"] = true, ["Sphere.010"] = true,
+			HumanoidRootPart = true,
+			Waist            = true,
+			LFoot            = true,
+			RFoot            = true,
+			angry            = true,
+			["Sphere.003"]   = true,
+			["Sphere.006"]   = true,
+			["Sphere.007"]   = true,
+			["Sphere.010"]   = true,
 		}
 		for _, v in ipairs(lmsMdl:GetDescendants()) do
 			if v:IsA("BasePart") then
 				v.CanCollide = false
-				v.Transparency = lmsForceTransparent[v.Name] and 1 or 0
+				if lmsForceTransparent[v.Name] then
+					v.Transparency = 1
+				else
+					v.Transparency = 0
+				end
 			elseif v:IsA("Trail") or v:IsA("Beam") then
 				v.Enabled = false
 			end
@@ -262,52 +291,64 @@ local function switchToLMSModel()
 			end
 		end)
 	end
+
 	currentLMSMdl = lmsMdl
 end
 
 local function revertToNormalModel()
 	isInLMS = false
-	if currentLMSMdl then currentLMSMdl:Destroy() currentLMSMdl = nil end
+
+	if currentLMSMdl then
+		currentLMSMdl:Destroy()
+		currentLMSMdl = nil
+	end
+
+	-- Restaurar visibilidad del modelo normal
 	if currentMdl then
 		for _, v in ipairs(currentMdl:GetDescendants()) do
-			if v:IsA("BasePart") and v.Name ~= "HumanoidRootPart" and v.Name ~= "Waist" then
-				v.Transparency = 0
+			if v:IsA("BasePart") then
+				if v.Name ~= "HumanoidRootPart" and v.Name ~= "Waist" then
+					v.Transparency = 0
+				end
 			end
 		end
 	end
 end
 
--- Optimizado: Bucle de 0.5s en lugar de iterar a 60 FPS con Heartbeat
 local function monitorLMS()
-	if lmsMonitorActive then return end
-	lmsMonitorActive = true
-	task.spawn(function()
-		while lmsMonitorActive and isScriptActive do
-			local soloTheme = game:GetService("ReplicatedStorage"):FindFirstChild("ClientAssets")
-			if soloTheme then 
-				soloTheme = soloTheme:FindFirstChild("Sounds") and soloTheme.Sounds:FindFirstChild("mus")
-					and soloTheme.Sounds.mus:FindFirstChild("Game") and soloTheme.Sounds.mus.Game:FindFirstChild("Round")
-					and soloTheme.Sounds.mus.Game.Round:FindFirstChild("SoloTheme")
-					and soloTheme.Sounds.mus.Game.Round.SoloTheme:FindFirstChild("SonicSolo")
-			end
+	if lmsModelConnection then lmsModelConnection:Disconnect() end
 
-			local isSoloPlaying = soloTheme and soloTheme.IsPlaying
-			local aliveCount = 0
-			local playersFolder = workspace:FindFirstChild("Players")
-			if playersFolder then
-				for _, folder in ipairs(playersFolder:GetChildren()) do
-					local hum = folder:FindFirstChild("Humanoid")
-					if hum and hum.Health > 0 then aliveCount += 1 end
+	lmsModelConnection = RunService.Heartbeat:Connect(function()
+		if not isScriptActive then return end
+
+		local soloTheme = game:GetService("ReplicatedStorage")
+			:FindFirstChild("ClientAssets")
+			and game.ReplicatedStorage.ClientAssets:FindFirstChild("Sounds")
+			and game.ReplicatedStorage.ClientAssets.Sounds:FindFirstChild("mus")
+			and game.ReplicatedStorage.ClientAssets.Sounds.mus:FindFirstChild("Game")
+			and game.ReplicatedStorage.ClientAssets.Sounds.mus.Game:FindFirstChild("Round")
+			and game.ReplicatedStorage.ClientAssets.Sounds.mus.Game.Round:FindFirstChild("SoloTheme")
+			and game.ReplicatedStorage.ClientAssets.Sounds.mus.Game.Round.SoloTheme:FindFirstChild("SonicSolo")
+
+		local isSoloPlaying = soloTheme and soloTheme.IsPlaying
+
+		local aliveCount = 0
+		local playersFolder = workspace:FindFirstChild("Players")
+		if playersFolder then
+			for _, folder in ipairs(playersFolder:GetChildren()) do
+				local hum = folder:FindFirstChild("Humanoid")
+				if hum and hum.Health > 0 then
+					aliveCount += 1
 				end
 			end
+		end
 
-			local shouldBeInLMS = isSoloPlaying or (aliveCount <= 1)
-			if shouldBeInLMS and not isInLMS then
-				switchToLMSModel()
-			elseif not shouldBeInLMS and isInLMS then
-				revertToNormalModel()
-			end
-			task.wait(0.5)
+		local shouldBeInLMS = isSoloPlaying or (aliveCount <= 1)
+
+		if shouldBeInLMS and not isInLMS then
+			switchToLMSModel()
+		elseif not shouldBeInLMS and isInLMS then
+			revertToNormalModel()
 		end
 	end)
 end
@@ -324,8 +365,8 @@ end
 local function stopScript()
 	if not isScriptActive then return end
 	isScriptActive = false
-	lmsMonitorActive = false
 	if syncConn then syncConn:Disconnect() syncConn = nil end
+	if lmsModelConnection then lmsModelConnection:Disconnect() lmsModelConnection = nil end
 	if currentLMSMdl and currentLMSMdl.Parent then currentLMSMdl:Destroy() currentLMSMdl = nil end
 	isInLMS = false
 	if currentMdl and currentMdl.Parent then currentMdl:Destroy() currentMdl = nil end
@@ -347,39 +388,41 @@ player.CharacterAdded:Connect(function(newChar)
 	end
 end)
 
--- Optimizado: Verificación basada en atributos sin sobrecargar el procesador
 local isCurrentlySonic = false
-task.spawn(function()
-	while true do
-		local model = getPlayerModel()
-		if model then
-			local check = (model:GetAttribute("Character") == "Sonic")
-			if check ~= isCurrentlySonic then
-				isCurrentlySonic = check
-				if isCurrentlySonic then startScript() else stopScript() end
-			end
-			model:GetAttributeChangedSignal("Character"):Wait()
-		else
-			task.wait(1)
-		end
+RunService.Heartbeat:Connect(function()
+	local check = isSonic()
+	if check ~= isCurrentlySonic then
+		isCurrentlySonic = check
+		if isCurrentlySonic then startScript() else stopScript() end
 	end
 end)
 
+if isSonic() then
+	isCurrentlySonic = true
+	startScript()
+end
+
 local function loadCustomAsset(url, filename)
-	if not isfile(filename) then writefile(filename, game:HttpGet(url)) end
+	if not isfile(filename) then
+		writefile(filename, game:HttpGet(url))
+	end
 	return getcustomasset(filename)
 end
 
-local CUSTOM_MUSIC = loadCustomAsset("https://github.com/monicagalindo-wq/RECUP/raw/refs/heads/main/FindYourFlame.mp3", "FindYourFlame.mp3")
+local CUSTOM_MUSIC = loadCustomAsset(
+	"https://github.com/monicagalindo-wq/RECUP/raw/refs/heads/main/FindYourFlame.mp3",
+	"FindYourFlame.mp3"
+)
 
 task.spawn(function()
-	local theme = game:GetService("ReplicatedStorage"):FindFirstChild("ClientAssets")
-	if theme then 
-		theme = theme:FindFirstChild("Sounds") and theme.Sounds:FindFirstChild("mus")
-			and theme.Sounds.mus:FindFirstChild("Game") and theme.Sounds.mus.Game:FindFirstChild("Round")
-			and theme.Sounds.mus.Game.Round:FindFirstChild("SoloTheme")
-			and theme.Sounds.mus.Game.Round.SoloTheme:FindFirstChild("SonicSolo")
-	end
+	local theme = game:GetService("ReplicatedStorage")
+		:FindFirstChild("ClientAssets")
+		and game.ReplicatedStorage.ClientAssets:FindFirstChild("Sounds")
+		and game.ReplicatedStorage.ClientAssets.Sounds:FindFirstChild("mus")
+		and game.ReplicatedStorage.ClientAssets.Sounds.mus:FindFirstChild("Game")
+		and game.ReplicatedStorage.ClientAssets.Sounds.mus.Game:FindFirstChild("Round")
+		and game.ReplicatedStorage.ClientAssets.Sounds.mus.Game.Round:FindFirstChild("SoloTheme")
+		and game.ReplicatedStorage.ClientAssets.Sounds.mus.Game.Round.SoloTheme:FindFirstChild("SonicSolo")
 	if not theme then return end
 	theme.SoundId = CUSTOM_MUSIC
 	theme.Volume = 1.5

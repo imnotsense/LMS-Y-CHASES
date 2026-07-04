@@ -10,6 +10,8 @@ local syncConn = nil
 local bloodConn = nil
 local rockholdConn = nil
 
+-- ColorSequence
+-- keypoint 0 → (29, 75, 46) oscuro | keypoint 1 → (58, 140, 85) claro
 local GREEN_CS = ColorSequence.new({
 	ColorSequenceKeypoint.new(0, Color3.fromRGB(29,  75,  46)),
 	ColorSequenceKeypoint.new(1, Color3.fromRGB(58, 140, 85)),
@@ -28,22 +30,37 @@ end
 
 local cachedVisualModel = nil
 local function getCachedVisualModel()
-	if cachedVisualModel and cachedVisualModel.Parent then return cachedVisualModel end
+	if cachedVisualModel and cachedVisualModel.Parent then
+		return cachedVisualModel
+	end
 	cachedVisualModel = getPlayerModel()
 	return cachedVisualModel
 end
+
+local function isSilver()
+	local model = getCachedVisualModel()
+	return model ~= nil and model:GetAttribute("Character") == "Silver"
+end
+
+-- Trail de miércoles
 
 local function paintTrailGreen(oldVisual)
 	if not oldVisual then return end
 	local hrp = oldVisual:FindFirstChild("HumanoidRootPart")
 	if not hrp then return end
 	local trail = hrp:FindFirstChildOfClass("Trail")
-	if trail then trail.Color = GREEN_CS end
+	if trail then
+		trail.Color = GREEN_CS
+	end
 end
+
+-- rockhold
 
 local function paintRockholdParticles(attachment)
 	for _, v in ipairs(attachment:GetChildren()) do
-		if v:IsA("ParticleEmitter") then v.Color = GREEN_CS end
+		if v:IsA("ParticleEmitter") then
+			v.Color = GREEN_CS
+		end
 	end
 end
 
@@ -52,42 +69,65 @@ local function setupRockholdWatcher(oldVisual)
 	if not oldVisual then return end
 
 	local hrp = oldVisual:FindFirstChild("HumanoidRootPart")
+
 	local function watchAttachment(att)
 		paintRockholdParticles(att)
 		att.ChildAdded:Connect(function(child)
-			if child:IsA("ParticleEmitter") then child.Color = GREEN_CS end
+			if child:IsA("ParticleEmitter") then
+				child.Color = GREEN_CS
+			end
 		end)
 	end
 
 	if hrp then
 		local existing = hrp:FindFirstChild("rockhold")
-		if existing and existing:IsA("Attachment") then watchAttachment(existing) end
+		if existing and existing:IsA("Attachment") then
+			watchAttachment(existing)
+		end
+
 		rockholdConn = hrp.ChildAdded:Connect(function(child)
-			if child.Name == "rockhold" and child:IsA("Attachment") then watchAttachment(child) end
+			if child.Name == "rockhold" and child:IsA("Attachment") then
+				watchAttachment(child)
+			end
 		end)
 	else
 		task.spawn(function()
 			local h = oldVisual:WaitForChild("HumanoidRootPart", 30)
 			if not h then return end
+
 			local existing = h:FindFirstChild("rockhold")
-			if existing and existing:IsA("Attachment") then watchAttachment(existing) end
+			if existing and existing:IsA("Attachment") then
+				watchAttachment(existing)
+			end
+
 			rockholdConn = h.ChildAdded:Connect(function(child)
-				if child.Name == "rockhold" and child:IsA("Attachment") then watchAttachment(child) end
+				if child.Name == "rockhold" and child:IsA("Attachment") then
+					watchAttachment(child)
+				end
 			end)
 		end)
 	end
 end
 
+-- decals
 local function removeWhiteFades(oldVisual)
 	if not oldVisual then return end
 	for _, desc in ipairs(oldVisual:GetDescendants()) do
-		if (desc:IsA("Decal") or desc:IsA("Texture")) and desc.Name == "White fade" then desc:Destroy() end
+		if (desc:IsA("Decal") or desc:IsA("Texture"))
+			and desc.Name == "White fade"
+		then
+			desc:Destroy()
+		end
 	end
 end
 
+--flamses
 local function cleanupOriginalEffects(oldVisual)
 	if not oldVisual then return end
-	local particleCount, lightCount = 0, 0
+
+	local particleCount = 0
+	local lightCount = 0
+
 	for _, v in ipairs(oldVisual:GetDescendants()) do
 		if particleCount < 2 and v:IsA("ParticleEmitter") then
 			v:Destroy()
@@ -100,38 +140,49 @@ local function cleanupOriginalEffects(oldVisual)
 	end
 end
 
+-- esencia
 local function setupBloodRemoval(oldVisual)
 	if bloodConn then bloodConn:Disconnect() bloodConn = nil end
 	if not oldVisual then return end
+
 	for _, v in ipairs(oldVisual:GetDescendants()) do
 		if v:IsA("Decal") and v.Name == "_BLOOD" then v:Destroy() end
 	end
+
 	bloodConn = oldVisual.DescendantAdded:Connect(function(descendant)
-		if descendant:IsA("Decal") and descendant.Name == "_BLOOD" then descendant:Destroy() end
+		if descendant:IsA("Decal") and descendant.Name == "_BLOOD" then
+			descendant:Destroy()
+		end
 	end)
 end
 
 local function setupViewport()
 	task.spawn(function()
 		local viewportFrame = player.PlayerGui
-			:WaitForChild("Round", 30):WaitForChild("Game", 30)
-			:WaitForChild("SurvivorHP", 30):WaitForChild("ViewportFrame", 30)
+			:WaitForChild("Round", 30)
+			:WaitForChild("Game", 30)
+			:WaitForChild("SurvivorHP", 30)
+			:WaitForChild("ViewportFrame", 30)
 		if not viewportFrame then return end
 		local viewportModel = viewportFrame
-			:WaitForChild("WorldModel", 30):WaitForChild("Default", 30)
+			:WaitForChild("WorldModel", 30)
+			:WaitForChild("Default", 30)
 		if not viewportModel then return end
 
 		local vpOverrideModel = nil
 		local function replaceViewportModel()
-			local newModel = loadAsset(75490718071537)
-			if not newModel then return end
+			local ok, objects = pcall(game.GetObjects, game, "rbxassetid://" .. 75490718071537)
+			if not ok or #objects == 0 then return end
 			if vpOverrideModel and vpOverrideModel.Parent then
 				vpOverrideModel:Destroy()
 				vpOverrideModel = nil
 			end
+			local newModel = objects[1]:Clone()
 			vpOverrideModel = newModel
 			for _, part in ipairs(viewportModel:GetDescendants()) do
-				if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then part.Transparency = 1 end
+				if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+					part.Transparency = 1
+				end
 			end
 			local newHum = newModel:FindFirstChildOfClass("Humanoid")
 			if newHum then newHum:Destroy() end
@@ -152,6 +203,7 @@ local function setupViewport()
 		end
 
 		replaceViewportModel()
+
 		viewportModel.DescendantAdded:Connect(function()
 			task.wait(0.1)
 			if not vpOverrideModel or not vpOverrideModel.Parent then
@@ -164,7 +216,7 @@ end
 
 local function setupCharacter(char)
 	if not isScriptActive then return end
-	if syncConn then syncConn:Disconnect() syncConn = nil end
+	if syncConn     then syncConn:Disconnect()     syncConn     = nil end
 	if rockholdConn then rockholdConn:Disconnect() rockholdConn = nil end
 	if currentMdl and currentMdl.Parent then currentMdl:Destroy() currentMdl = nil end
 
@@ -179,11 +231,11 @@ local function setupCharacter(char)
 		end
 	end
 
-	cleanupOriginalEffects(oldVisual)
-	setupBloodRemoval(oldVisual)
-	removeWhiteFades(oldVisual)
-	paintTrailGreen(oldVisual)
-	setupRockholdWatcher(oldVisual)
+	cleanupOriginalEffects(oldVisual)  -- ParticleEmitters + PointLights og
+	setupBloodRemoval(oldVisual)       -- borra la "esencia"
+	removeWhiteFades(oldVisual)        -- borrar White fade de Left/Right Eye
+	paintTrailGreen(oldVisual)         -- adivina
+	setupRockholdWatcher(oldVisual)    -- adivina x2
 
 	local mdl = loadAsset(ASSET_ID)
 	if not mdl then return end
@@ -205,7 +257,9 @@ local function setupCharacter(char)
 	for _, v in ipairs(mdl:GetDescendants()) do
 		if v:IsA("BasePart") then
 			v.CanCollide = false
-			if v.Name == "HumanoidRootPart" or v.Name == "Waist" then v.Transparency = 1 end
+			if v.Name == "HumanoidRootPart" or v.Name == "Waist" then
+				v.Transparency = 1
+			end
 		elseif v:IsA("Trail") or v:IsA("Beam") then
 			v.Enabled = false
 		end
@@ -220,16 +274,32 @@ local function setupCharacter(char)
 			return
 		end
 		newHrp.CFrame = hrp.CFrame
-		
-		-- Ocultar partes nativas directamente en el ciclo de actualización
-		if oldVisual and oldVisual.Parent then
-			local defaultFolder = oldVisual:FindFirstChild("Default")
-			if defaultFolder then
-				local waist = defaultFolder:FindFirstChild("Waist")
-				local hrpDef = defaultFolder:FindFirstChild("HumanoidRootPart")
-				if waist and waist:IsA("BasePart") and waist.Transparency ~= 1 then waist.Transparency = 1 end
-				if hrpDef and hrpDef:IsA("BasePart") and hrpDef.Transparency ~= 1 then hrpDef.Transparency = 1 end
+	end)
+
+	task.spawn(function()
+		local cachedDefault = nil
+		local cachedWaist   = nil
+		local cachedHrpDef  = nil
+
+		while char and char.Parent and isScriptActive do
+			if oldVisual and oldVisual.Parent then
+				if not cachedDefault or not cachedDefault.Parent then
+					cachedDefault = oldVisual:FindFirstChild("Default")
+					cachedWaist   = nil
+					cachedHrpDef  = nil
+				end
+				if cachedDefault then
+					if not cachedWaist  or not cachedWaist.Parent  then
+						cachedWaist  = cachedDefault:FindFirstChild("Waist")
+					end
+					if not cachedHrpDef or not cachedHrpDef.Parent then
+						cachedHrpDef = cachedDefault:FindFirstChild("HumanoidRootPart")
+					end
+					if cachedWaist  and cachedWaist:IsA("BasePart")  then cachedWaist.Transparency  = 1 end
+					if cachedHrpDef and cachedHrpDef:IsA("BasePart") then cachedHrpDef.Transparency = 1 end
+				end
 			end
+			task.wait(0.5)
 		end
 	end)
 end
@@ -245,8 +315,8 @@ end
 local function stopScript()
 	if not isScriptActive then return end
 	isScriptActive = false
-	if syncConn then syncConn:Disconnect() syncConn = nil end
-	if bloodConn then bloodConn:Disconnect() bloodConn = nil end
+	if syncConn     then syncConn:Disconnect()     syncConn     = nil end
+	if bloodConn    then bloodConn:Disconnect()    bloodConn    = nil end
 	if rockholdConn then rockholdConn:Disconnect() rockholdConn = nil end
 	if currentMdl and currentMdl.Parent then currentMdl:Destroy() currentMdl = nil end
 	if character then
@@ -266,39 +336,40 @@ player.CharacterAdded:Connect(function(newChar)
 	end
 end)
 
--- Optimizado: Verificación basada en atributos sin sobrecargar el procesador
 local isCurrentlySilver = false
-task.spawn(function()
-	while true do
-		local model = getCachedVisualModel()
-		if model then
-			local check = (model:GetAttribute("Character") == "Silver")
-			if check ~= isCurrentlySilver then
-				isCurrentlySilver = check
-				if isCurrentlySilver then startScript() else stopScript() end
-			end
-			model:GetAttributeChangedSignal("Character"):Wait()
-		else
-			task.wait(1)
-		end
-	end
+RunService.Heartbeat:Connect(function()
+	local check = isSilver()
+	if check == isCurrentlySilver then return end
+	isCurrentlySilver = check
+	if isCurrentlySilver then startScript() else stopScript() end
 end)
 
+if isSilver() then
+	isCurrentlySilver = true
+	startScript()
+end
+
 local function loadCustomAsset(url, filename)
-	if not isfile(filename) then writefile(filename, game:HttpGet(url)) end
+	if not isfile(filename) then
+		writefile(filename, game:HttpGet(url))
+	end
 	return getcustomasset(filename)
 end
 
-local CUSTOM_MUSIC = loadCustomAsset("https://github.com/monicagalindo-wq/RECUP/raw/refs/heads/main/Attack.mp3", "Attack.mp3")
+local CUSTOM_MUSIC = loadCustomAsset(
+	"https://github.com/monicagalindo-wq/RECUP/raw/refs/heads/main/Attack.mp3",
+	"Attack.mp3"
+)
 
 task.spawn(function()
-	local theme = game:GetService("ReplicatedStorage"):FindFirstChild("ClientAssets")
-	if theme then 
-		theme = theme:FindFirstChild("Sounds") and theme.Sounds:FindFirstChild("mus")
-			and theme.Sounds.mus:FindFirstChild("Game") and theme.Sounds.mus.Game:FindFirstChild("Round")
-			and theme.Sounds.mus.Game.Round:FindFirstChild("SoloTheme")
-			and theme.Sounds.mus.Game.Round.SoloTheme:FindFirstChild("SuperSonicSolo")
-	end
+	local theme = game:GetService("ReplicatedStorage")
+		:FindFirstChild("ClientAssets")
+		and game.ReplicatedStorage.ClientAssets:FindFirstChild("Sounds")
+		and game.ReplicatedStorage.ClientAssets.Sounds:FindFirstChild("mus")
+		and game.ReplicatedStorage.ClientAssets.Sounds.mus:FindFirstChild("Game")
+		and game.ReplicatedStorage.ClientAssets.Sounds.mus.Game:FindFirstChild("Round")
+		and game.ReplicatedStorage.ClientAssets.Sounds.mus.Game.Round:FindFirstChild("SoloTheme")
+		and game.ReplicatedStorage.ClientAssets.Sounds.mus.Game.Round.SoloTheme:FindFirstChild("SuperSonicSolo")
 	if not theme then return end
 	theme.SoundId = CUSTOM_MUSIC
 	theme.Volume = 1.5

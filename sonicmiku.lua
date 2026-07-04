@@ -9,7 +9,7 @@ local character = player.Character or player.CharacterAdded:Wait()
 
 local currentSpindashModel = nil
 local spindashSpinConnection = nil
-local currentCustomModel = nil 
+local currentCustomModel = nil -- NUEVA VARIABLE: Guarda la referencia del modelo Miku Sonic
 
 local function getPlayerModel()
 	local playersFolder = workspace:FindFirstChild("Players")
@@ -56,7 +56,6 @@ local function stopSpindashFollow()
 	end
 end
 
--- Este Heartbeat se mantiene porque el movimiento del spindash DEBE ser fluido a 60 FPS
 local function startSpindashFollow(spindashPart)
 	if spindashSpinConnection then spindashSpinConnection:Disconnect() end
 	
@@ -117,26 +116,23 @@ local function replaceSpindashMesh()
 	end
 end
 
--- Optimizado: Bucle pasivo en lugar de comprobar Spindash 60 veces por segundo
-task.spawn(function()
-	while task.wait(0.5) do
-		if not isPlayingAsSonic() then
-			if currentSpindashModel then stopSpindashFollow() end
-			continue
-		end
+RunService.Heartbeat:Connect(function()
+	if not isPlayingAsSonic() then
+		if currentSpindashModel then stopSpindashFollow() end
+		return
+	end
 
-		local playersFolder = workspace:FindFirstChild("Players")
-		local playerFolder = playersFolder and playersFolder:FindFirstChild(player.Name)
-		local spindashFolder = playerFolder and playerFolder:FindFirstChild("Spindash")
-		
-		if spindashFolder and spindashFolder:FindFirstChild("Spindash") then
-			if not currentSpindashModel then
-				replaceSpindashMesh()
-			end
-		else
-			if currentSpindashModel then
-				stopSpindashFollow()
-			end
+	local playersFolder = workspace:FindFirstChild("Players")
+	local playerFolder = playersFolder and playersFolder:FindFirstChild(player.Name)
+	local spindashFolder = playerFolder and playerFolder:FindFirstChild("Spindash")
+	
+	if spindashFolder and spindashFolder:FindFirstChild("Spindash") then
+		if not currentSpindashModel then
+			replaceSpindashMesh()
+		end
+	else
+		if currentSpindashModel then
+			stopSpindashFollow()
 		end
 	end
 end)
@@ -161,11 +157,27 @@ local function setupCharacter(char)
 	local mdl = loadAsset(ASSET_ID)
 	if not mdl then return end
 	
-	currentCustomModel = mdl 
+	currentCustomModel = mdl -- Guardamos el modelo inyectado para no ocultarlo después
 	
 	if oldVisual then mdl.Parent = oldVisual else mdl.Parent = char end
 
 	task.wait(0.5)
+
+	local lastLifeActive = isLastLife()
+	if lastLifeActive then
+		local brokenFolder = mdl:FindFirstChild("Broken")
+		if brokenFolder then
+			for _, part in ipairs(brokenFolder:GetDescendants()) do
+				if part:IsA("BasePart") then part.Transparency = 0 end
+			end
+		end
+		local circularFolder = mdl:FindFirstChild("Circular")
+		if circularFolder then
+			for _, part in ipairs(circularFolder:GetDescendants()) do
+				if part:IsA("BasePart") then part.Transparency = 1 end
+			end
+		end
+	end
 
 	local hrp = char:FindFirstChild("HumanoidRootPart")
 	local newHrp = mdl:FindFirstChild("HumanoidRootPart")
@@ -234,28 +246,35 @@ local function setupCharacter(char)
 	task.spawn(monitorLastLife)
 end
 
--- Optimizado: Bucle de 0.5s en lugar de 0.1s para reducir la carga de procesador al iterar descendientes
+-- BUCLE DE INVISIBILIDAD MEJORADO
 task.spawn(function()
-	while task.wait(0.5) do
+	while task.wait(0.1) do
 		if isPlayingAsSonic() then
 			
+			-- 1. Ocultar el personaje base (las hitboxes)
 			if character then
 				for _, v in ipairs(character:GetDescendants()) do
-					if (v:IsA("BasePart") or v:IsA("Decal")) and v.Transparency ~= 1 then
+					if v:IsA("BasePart") or v:IsA("Decal") then
+						-- Saltar nuestro modelo custom
 						if currentCustomModel and (v == currentCustomModel or v:IsDescendantOf(currentCustomModel)) then continue end
 						v.Transparency = 1
 					end
 				end
 			end
 			
+			-- 2. Ocultar los visuales originales de Outcome Memories
 			local playersFolder = workspace:FindFirstChild("Players")
 			local visualFolder = playersFolder and playersFolder:FindFirstChild(player.Name)
 			
 			if visualFolder then
 				for _, v in ipairs(visualFolder:GetDescendants()) do
-					if (v:IsA("BasePart") or v:IsA("MeshPart") or v:IsA("Decal")) and v.Transparency ~= 1 then
+					if v:IsA("BasePart") or v:IsA("MeshPart") or v:IsA("Decal") then
+						-- Saltar el modelo de Miku Sonic
 						if currentCustomModel and (v == currentCustomModel or v:IsDescendantOf(currentCustomModel)) then continue end
+						-- Saltar el spindash customizado
 						if currentSpindashModel and (v == currentSpindashModel or v:IsDescendantOf(currentSpindashModel)) then continue end
+						
+						-- Mantener todo lo demás del juego invisible constantemente
 						v.Transparency = 1
 					end
 				end

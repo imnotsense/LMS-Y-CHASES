@@ -22,6 +22,11 @@ local function getPlayerModel()
 	return playersFolder and playersFolder:FindFirstChild(player.Name)
 end
 
+local function isTails()
+	local model = getPlayerModel()
+	return model and model:GetAttribute("Character") == "Tails"
+end
+
 local function setupViewport()
 	task.spawn(function()
 		local viewportFrame = player.PlayerGui
@@ -134,18 +139,23 @@ local function setupCharacter(char)
 			return
 		end
 		newHrp.CFrame = hrp.CFrame
-		
-		-- Optimizado: Fusionado dentro de Stepped en lugar de usar un bucle while independiente
-		if oldVisual and oldVisual.Parent then
-			local defaultFolder = oldVisual:FindFirstChild("Default")
-			if defaultFolder then
-				local waist = defaultFolder:FindFirstChild("Waist")
-				local hrpDef = defaultFolder:FindFirstChild("HumanoidRootPart")
-				if waist and waist:IsA("BasePart") and waist.Transparency ~= 1 then waist.Transparency = 1 end
-				if hrpDef and hrpDef:IsA("BasePart") and hrpDef.Transparency ~= 1 then hrpDef.Transparency = 1 end
+	end)
+
+	task.spawn(function()
+		while char and char.Parent and isScriptActive do
+			if oldVisual and oldVisual.Parent then
+				local defaultFolder = oldVisual:FindFirstChild("Default")
+				if defaultFolder then
+					local waist = defaultFolder:FindFirstChild("Waist")
+					local hrpDef = defaultFolder:FindFirstChild("HumanoidRootPart")
+					if waist and waist:IsA("BasePart") then waist.Transparency = 1 end
+					if hrpDef and hrpDef:IsA("BasePart") then hrpDef.Transparency = 1 end
+				end
 			end
+			task.wait(0.1)
 		end
 	end)
+
 end
 
 local function startScript()
@@ -177,23 +187,20 @@ player.CharacterAdded:Connect(function(newChar)
 	end
 end)
 
--- Optimizado: Eventos de señal en lugar de procesar a 60 FPS con Heartbeat
 local isCurrentlyTails = false
-task.spawn(function()
-	while true do
-		local model = getPlayerModel()
-		if model then
-			local check = (model:GetAttribute("Character") == "Tails")
-			if check ~= isCurrentlyTails then
-				isCurrentlyTails = check
-				if isCurrentlyTails then startScript() else stopScript() end
-			end
-			model:GetAttributeChangedSignal("Character"):Wait()
-		else
-			task.wait(1)
-		end
+RunService.Heartbeat:Connect(function()
+	local check = isTails()
+	if check ~= isCurrentlyTails then
+		isCurrentlyTails = check
+		if isCurrentlyTails then startScript() else stopScript() end
 	end
 end)
+
+if isTails() then
+	isCurrentlyTails = true
+	startScript()
+end
+
 
 local function loadCustomAsset(url, filename)
 	if not isfile(filename) then

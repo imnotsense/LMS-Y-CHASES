@@ -1,19 +1,15 @@
 --[[
-	TAILS SCRIPT - OPTIMIZADO
-	Se eliminaron fugas de memoria y escaneos de Heartbeat.
+	WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
 ]]
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
 local ASSET_ID = 123314955660361
 local isScriptActive = false
 local currentMdl = nil
 local syncConn = nil
-local transparencyLoop = nil
-local viewportConn = nil
-
-local playersFolder = workspace:WaitForChild("Players")
 
 local function loadAsset(id)
 	local ok, objects = pcall(game.GetObjects, game, "rbxassetid://" .. id)
@@ -22,7 +18,8 @@ local function loadAsset(id)
 end
 
 local function getPlayerModel()
-	return playersFolder:FindFirstChild(player.Name)
+	local playersFolder = workspace:FindFirstChild("Players")
+	return playersFolder and playersFolder:FindFirstChild(player.Name)
 end
 
 local function isTails()
@@ -32,38 +29,42 @@ end
 
 local function setupViewport()
 	task.spawn(function()
-		local viewportFrame = player.PlayerGui:WaitForChild("Round", 30)
+		local viewportFrame = player.PlayerGui
+			:WaitForChild("Round", 30)
+			:WaitForChild("Game", 30)
+			:WaitForChild("SurvivorHP", 30)
+			:WaitForChild("ViewportFrame", 30)
 		if not viewportFrame then return end
-		local gameUi = viewportFrame:WaitForChild("Game", 30)
-		if not gameUi then return end
-		local viewportModel = gameUi:WaitForChild("SurvivorHP", 30):WaitForChild("ViewportFrame", 30):WaitForChild("WorldModel", 30):WaitForChild("Default", 30)
+		local viewportModel = viewportFrame
+			:WaitForChild("WorldModel", 30)
+			:WaitForChild("Default", 30)
 		if not viewportModel then return end
 
 		local vpOverrideModel = nil
-
 		local function replaceViewportModel()
-			if vpOverrideModel and vpOverrideModel.Parent then return end
-			local mdl = loadAsset(ASSET_ID)
-			if not mdl then return end
-
+			local ok, objects = pcall(game.GetObjects, game, "rbxassetid://" .. 123314955660361)
+			if not ok or #objects == 0 then return end
+			if vpOverrideModel and vpOverrideModel.Parent then
+				vpOverrideModel:Destroy()
+				vpOverrideModel = nil
+			end
+			local newModel = objects[1]:Clone()
+			vpOverrideModel = newModel
 			for _, part in ipairs(viewportModel:GetDescendants()) do
 				if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
 					part.Transparency = 1
 				end
 			end
-			local newHum = mdl:FindFirstChildOfClass("Humanoid")
+			local newHum = newModel:FindFirstChildOfClass("Humanoid")
 			if newHum then newHum:Destroy() end
-			for _, v in ipairs(mdl:GetDescendants()) do
+			for _, v in ipairs(newModel:GetDescendants()) do
 				if v:IsA("BasePart") then v.CanCollide = false end
 			end
-
-			vpOverrideModel = mdl
-			mdl.Parent = viewportModel
+			newModel.Parent = viewportModel
 			local viewportHRP = viewportModel:FindFirstChild("HumanoidRootPart")
-			local primaryPart = mdl.PrimaryPart or mdl:FindFirstChildWhichIsA("BasePart")
-
+			local primaryPart = newModel.PrimaryPart or newModel:FindFirstChildWhichIsA("BasePart")
 			if viewportHRP and primaryPart then
-				mdl:PivotTo(viewportHRP.CFrame)
+				newModel:PivotTo(viewportHRP.CFrame)
 				primaryPart.Transparency = 1
 				local weld = Instance.new("WeldConstraint")
 				weld.Part0 = viewportHRP
@@ -74,10 +75,10 @@ local function setupViewport()
 
 		replaceViewportModel()
 
-		if viewportConn then viewportConn:Disconnect() end
-		viewportConn = viewportModel.DescendantAdded:Connect(function()
+		viewportModel.DescendantAdded:Connect(function()
+			task.wait(0.1)
 			if not vpOverrideModel or not vpOverrideModel.Parent then
-				task.wait(0.1)
+				vpOverrideModel = nil
 				replaceViewportModel()
 			end
 		end)
@@ -89,21 +90,22 @@ local function setupCharacter(char)
 	if syncConn then syncConn:Disconnect() syncConn = nil end
 	if currentMdl and currentMdl.Parent then currentMdl:Destroy() currentMdl = nil end
 
-	local oldVisual = getPlayerModel()
-	
-	local function hideParts(model)
-		for _, v in ipairs(model:GetDescendants()) do
+	for _, v in ipairs(char:GetDescendants()) do
+		if v:IsA("BasePart") then v.Transparency = 1 end
+	end
+
+	local playersFolder = workspace:FindFirstChild("Players")
+	local oldVisual = playersFolder and playersFolder:FindFirstChild(player.Name)
+	if oldVisual then
+		for _, v in ipairs(oldVisual:GetDescendants()) do
 			if v:IsA("BasePart") then v.Transparency = 1 end
 		end
 	end
 
-	hideParts(char)
-	if oldVisual then hideParts(oldVisual) end
-
 	local mdl = loadAsset(ASSET_ID)
 	if not mdl then return end
 
-	mdl.Parent = oldVisual or char
+	if oldVisual then mdl.Parent = oldVisual else mdl.Parent = char end
 
 	local hrp = char:FindFirstChild("HumanoidRootPart")
 	local newHrp = mdl:FindFirstChild("HumanoidRootPart")
@@ -131,16 +133,15 @@ local function setupCharacter(char)
 	newHrp.CFrame = hrp.CFrame
 	currentMdl = mdl
 
-	syncConn = RunService.RenderStepped:Connect(function()
+	syncConn = RunService.Stepped:Connect(function()
 		if not char.Parent or not hrp.Parent or not newHrp.Parent then
-			if syncConn then syncConn:Disconnect() syncConn = nil end
+			if syncConn then syncConn:Disconnect() end
 			return
 		end
 		newHrp.CFrame = hrp.CFrame
 	end)
 
-	if transparencyLoop then task.cancel(transparencyLoop) end
-	transparencyLoop = task.spawn(function()
+	task.spawn(function()
 		while char and char.Parent and isScriptActive do
 			if oldVisual and oldVisual.Parent then
 				local defaultFolder = oldVisual:FindFirstChild("Default")
@@ -151,34 +152,34 @@ local function setupCharacter(char)
 					if hrpDef and hrpDef:IsA("BasePart") then hrpDef.Transparency = 1 end
 				end
 			end
-			task.wait(0.5) -- Aumentado para ahorrar recursos sin afectar la funcionalidad
+			task.wait(0.1)
 		end
 	end)
+
 end
 
 local function startScript()
 	if isScriptActive then return end
+	task.wait(3)
 	isScriptActive = true
 	setupViewport()
-	if player.Character then setupCharacter(player.Character) end
+	if character then setupCharacter(character) end
 end
 
 local function stopScript()
 	if not isScriptActive then return end
 	isScriptActive = false
 	if syncConn then syncConn:Disconnect() syncConn = nil end
-	if viewportConn then viewportConn:Disconnect() viewportConn = nil end
-	if transparencyLoop then task.cancel(transparencyLoop) transparencyLoop = nil end
 	if currentMdl and currentMdl.Parent then currentMdl:Destroy() currentMdl = nil end
-	
-	if player.Character then
-		for _, v in ipairs(player.Character:GetDescendants()) do
-			if v:IsA("BasePart") and v.Name ~= "HumanoidRootPart" then v.Transparency = 0 end
+	if character then
+		for _, v in ipairs(character:GetDescendants()) do
+			if v:IsA("BasePart") then v.Transparency = 0 end
 		end
 	end
 end
 
 player.CharacterAdded:Connect(function(newChar)
+	character = newChar
 	if isScriptActive then
 		task.wait(1)
 		setupCharacter(newChar)
@@ -186,21 +187,16 @@ player.CharacterAdded:Connect(function(newChar)
 	end
 end)
 
-local function checkTailsStatus()
+local isCurrentlyTails = false
+RunService.Heartbeat:Connect(function()
 	local check = isTails()
-	if check and not isScriptActive then startScript()
-	elseif not check and isScriptActive then stopScript() end
-end
-
-playersFolder.ChildAdded:Connect(function(child)
-	if child.Name == player.Name then
-		checkTailsStatus()
-		child:GetAttributeChangedSignal("Character"):Connect(checkTailsStatus)
+	if check ~= isCurrentlyTails then
+		isCurrentlyTails = check
+		if isCurrentlyTails then startScript() else stopScript() end
 	end
 end)
 
-local initialCheck = getPlayerModel()
-if initialCheck then
-	checkTailsStatus()
-	initialCheck:GetAttributeChangedSignal("Character"):Connect(checkTailsStatus)
+if isTails() then
+	isCurrentlyTails = true
+	startScript()
 end

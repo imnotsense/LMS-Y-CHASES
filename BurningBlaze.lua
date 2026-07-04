@@ -8,30 +8,13 @@ local ICON_ID = "rbxassetid://78720790829181"
 local isScriptActive = false
 local currentMdl = nil
 local syncConn = nil
-local vpConn = nil
 
--- ==========================================
--- SISTEMA DE CACHÉ (AQUÍ ESTÁ LA MAGIA)
--- ==========================================
-local modelCache = {}
-
-local function getCachedAsset(id)
-	-- Si no está en el caché, lo descargamos UNA sola vez
-	if not modelCache[id] then
-		local ok, objects = pcall(game.GetObjects, game, "rbxassetid://" .. id)
-		if ok and objects and #objects > 0 then
-			modelCache[id] = objects[1]
-		else
-			return nil
-		end
-	end
-	-- Clonamos el modelo guardado en memoria (muy rápido y consume menos RAM)
-	return modelCache[id]:Clone()
+local function loadAsset(id)
+	local ok, objects = pcall(game.GetObjects, game, "rbxassetid://" .. id)
+	if not ok or not objects or #objects == 0 then return nil end
+	return objects[1]:Clone()
 end
 
--- ==========================================
--- FUNCIONES PRINCIPALES
--- ==========================================
 local function getPlayerModel()
 	local playersFolder = workspace:FindFirstChild("Players")
 	return playersFolder and playersFolder:FindFirstChild(player.Name)
@@ -47,20 +30,16 @@ local function replacePlayerFrame()
 	local teamsGui = pg:FindFirstChild("Round") and pg.Round:FindFirstChild("Game") and pg.Round.Game:FindFirstChild("Teams")
 	if not teamsGui then return end
 	local playerFrame = nil
-	
 	for _ = 1, 20 do
 		playerFrame = teamsGui:FindFirstChild(player.Name)
 		if playerFrame then break end
 		task.wait(0.25)
 	end
-	
 	if not playerFrame then return end
 	local frame = playerFrame:FindFirstChild("Frame")
 	if not frame then return end
-	
 	local cc = frame:FindFirstChild("Character")
 	if not cc then return end
-	
 	cc:ClearAllChildren()
 	local lbl = Instance.new("ImageLabel")
 	lbl.Image = ICON_ID
@@ -80,7 +59,6 @@ local function setupViewport()
 			:WaitForChild("Game", 30)
 			:WaitForChild("SurvivorHP", 30)
 			:WaitForChild("ViewportFrame", 30)
-			
 		if not viewportFrame then return end
 		local viewportModel = viewportFrame
 			:WaitForChild("WorldModel", 30)
@@ -88,35 +66,28 @@ local function setupViewport()
 		if not viewportModel then return end
 
 		local vpOverrideModel = nil
-
 		local function replaceViewportModel()
-			-- Usamos el caché en lugar de volver a descargar
-			local newModel = getCachedAsset(ASSET_ID)
-			if not newModel then return end
-
+			local ok, objects = pcall(game.GetObjects, game, "rbxassetid://" .. 75175137287879)
+			if not ok or #objects == 0 then return end
 			if vpOverrideModel and vpOverrideModel.Parent then
 				vpOverrideModel:Destroy()
+				vpOverrideModel = nil
 			end
-			
+			local newModel = objects[1]:Clone()
 			vpOverrideModel = newModel
-			
 			for _, part in ipairs(viewportModel:GetDescendants()) do
 				if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
 					part.Transparency = 1
 				end
 			end
-			
 			local newHum = newModel:FindFirstChildOfClass("Humanoid")
 			if newHum then newHum:Destroy() end
-			
 			for _, v in ipairs(newModel:GetDescendants()) do
 				if v:IsA("BasePart") then v.CanCollide = false end
 			end
-			
 			newModel.Parent = viewportModel
 			local viewportHRP = viewportModel:FindFirstChild("HumanoidRootPart")
 			local primaryPart = newModel.PrimaryPart or newModel:FindFirstChildWhichIsA("BasePart")
-			
 			if viewportHRP and primaryPart then
 				newModel:PivotTo(viewportHRP.CFrame)
 				primaryPart.Transparency = 1
@@ -129,19 +100,12 @@ local function setupViewport()
 
 		replaceViewportModel()
 
-		if vpConn then vpConn:Disconnect() end
-		
-		-- Sistema de Anti-Spam (Debounce) para evitar lag al cargar piezas
-		local isReplacing = false 
-		vpConn = viewportModel.DescendantAdded:Connect(function()
-			if isReplacing or not isScriptActive then return end
-			isReplacing = true
+		viewportModel.DescendantAdded:Connect(function()
 			task.wait(0.1)
-			if isScriptActive and (not vpOverrideModel or not vpOverrideModel.Parent) then
+			if not vpOverrideModel or not vpOverrideModel.Parent then
 				vpOverrideModel = nil
 				replaceViewportModel()
 			end
-			isReplacing = false
 		end)
 	end)
 end
@@ -163,8 +127,7 @@ local function setupCharacter(char)
 		end
 	end
 
-	-- Usamos el caché aquí también
-	local mdl = getCachedAsset(ASSET_ID)
+	local mdl = loadAsset(ASSET_ID)
 	if not mdl then return end
 
 	if oldVisual then mdl.Parent = oldVisual else mdl.Parent = char end
@@ -214,7 +177,7 @@ local function setupCharacter(char)
 					if hrpDef and hrpDef:IsA("BasePart") then hrpDef.Transparency = 1 end
 				end
 			end
-			task.wait(0.5) -- Relajado de 0.1 a 0.5 para ahorrar rendimiento
+			task.wait(0.1)
 		end
 	end)
 
@@ -245,7 +208,6 @@ local function stopScript()
 	if not isScriptActive then return end
 	isScriptActive = false
 	if syncConn then syncConn:Disconnect() syncConn = nil end
-	if vpConn then vpConn:Disconnect() vpConn = nil end
 	if currentMdl and currentMdl.Parent then currentMdl:Destroy() currentMdl = nil end
 	if character then
 		for _, v in ipairs(character:GetDescendants()) do
@@ -264,15 +226,11 @@ player.CharacterAdded:Connect(function(newChar)
 end)
 
 local isCurrentlyBlaze = false
-
--- Optimizado: En vez de un Heartbeat que se ejecuta 60 veces por segundo, chequea cada medio segundo
-task.spawn(function()
-	while task.wait(0.5) do
-		local check = isBlaze()
-		if check ~= isCurrentlyBlaze then
-			isCurrentlyBlaze = check
-			if isCurrentlyBlaze then startScript() else stopScript() end
-		end
+RunService.Heartbeat:Connect(function()
+	local check = isBlaze()
+	if check ~= isCurrentlyBlaze then
+		isCurrentlyBlaze = check
+		if isCurrentlyBlaze then startScript() else stopScript() end
 	end
 end)
 

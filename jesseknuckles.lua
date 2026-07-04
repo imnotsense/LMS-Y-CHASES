@@ -1,4 +1,4 @@
-local CUSTOM_SPINDASH_ID = nil -- Ajusta esto a tu ID
+local CUSTOM_SPINDASH_ID = nil
 local ASSET_ID = 107292863484385
 
 local Players = game:GetService("Players")
@@ -6,16 +6,8 @@ local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 
-local playersFolder = workspace:WaitForChild("Players")
 local currentSpindashModel = nil
 local spindashSpinConnection = nil
-local isScriptActive = false
-local currentMdl = nil
-local syncConn = nil
-
-local function getPlayerModel()
-	return playersFolder:FindFirstChild(player.Name)
-end
 
 local function stopSpindashFollow()
 	if spindashSpinConnection then
@@ -27,11 +19,14 @@ local function stopSpindashFollow()
 		currentSpindashModel = nil
 	end
 	
-	local playerFolder = getPlayerModel()
+	local playersFolder = workspace:FindFirstChild("Players")
+	local playerFolder = playersFolder and playersFolder:FindFirstChild(player.Name)
 	local spindashFolder = playerFolder and playerFolder:FindFirstChild("Spindash")
 	local originalPart = spindashFolder and spindashFolder:FindFirstChild("Spindash")
 	
-	if originalPart then originalPart.Transparency = 0 end
+	if originalPart then
+		originalPart.Transparency = 0
+	end
 end
 
 local function startSpindashFollow(spindashPart)
@@ -43,24 +38,26 @@ local function startSpindashFollow(spindashPart)
 			return
 		end
 		
+		local targetCFrame = spindashPart.CFrame
+		
 		if currentSpindashModel:IsA("BasePart") then
-			currentSpindashModel.CFrame = spindashPart.CFrame
+			currentSpindashModel.CFrame = targetCFrame
 		else
-			currentSpindashModel:PivotTo(spindashPart.CFrame)
+			currentSpindashModel:PivotTo(targetCFrame)
 		end
 	end)
 end
 
 local function replaceSpindashMesh()
-	if currentSpindashModel or not CUSTOM_SPINDASH_ID then return end
-	
-	local playerFolder = getPlayerModel()
+	local playersFolder = workspace:FindFirstChild("Players")
+	if not playersFolder then return end
+	local playerFolder = playersFolder:FindFirstChild(player.Name)
 	if not playerFolder then return end
 	local spindashFolder = playerFolder:FindFirstChild("Spindash")
 	if not spindashFolder then return end
 	
 	local originalPart = spindashFolder:FindFirstChild("Spindash")
-	if originalPart and originalPart:IsA("BasePart") then
+	if originalPart and originalPart:IsA("BasePart") and not currentSpindashModel then
 		
 		local ok, objects = pcall(game.GetObjects, game, "rbxassetid://" .. CUSTOM_SPINDASH_ID)
 		if ok and objects and #objects > 0 then
@@ -80,8 +77,14 @@ local function replaceSpindashMesh()
 			originalPart.Transparency = 1
 			for _, effect in ipairs(originalPart:GetDescendants()) do
 				if effect:IsA("BasePart") then
-					effect.Transparency = (effect.Name == "default") and 0.5 or 1
-				elseif effect:IsA("Light") or effect:IsA("ParticleEmitter") or effect:IsA("Trail") or effect:IsA("Beam") then
+					if effect.Name == "default" then
+						effect.Transparency = 0.5
+					else
+						effect.Transparency = 1
+					end
+				elseif effect:IsA("PointLight") or effect:IsA("SpotLight") or effect:IsA("SurfaceLight") then
+					effect.Enabled = false
+				elseif effect:IsA("ParticleEmitter") or effect:IsA("Trail") or effect:IsA("Beam") then
 					effect.Enabled = false
 				end
 			end
@@ -91,22 +94,19 @@ local function replaceSpindashMesh()
 	end
 end
 
--- Monitoreo de Spindash optimizado
-task.spawn(function()
-	while true do
-		if isScriptActive then
-			local playerFolder = getPlayerModel()
-			local spindashFolder = playerFolder and playerFolder:FindFirstChild("Spindash")
-			
-			if spindashFolder and spindashFolder:FindFirstChild("Spindash") then
-				replaceSpindashMesh()
-			else
-				if currentSpindashModel then stopSpindashFollow() end
-			end
-		else
-			if currentSpindashModel then stopSpindashFollow() end
+RunService.Heartbeat:Connect(function()
+	local playersFolder = workspace:FindFirstChild("Players")
+	local playerFolder = playersFolder and playersFolder:FindFirstChild(player.Name)
+	local spindashFolder = playerFolder and playerFolder:FindFirstChild("Spindash")
+	
+	if spindashFolder and spindashFolder:FindFirstChild("Spindash") then
+		if not currentSpindashModel then
+			replaceSpindashMesh()
 		end
-		task.wait(0.1)
+	else
+		if currentSpindashModel then
+			stopSpindashFollow()
+		end
 	end
 end)
 
@@ -116,36 +116,62 @@ local function loadAsset(id)
 	return objects[1]:Clone()
 end
 
+local function getPlayerModel()
+	local playersFolder = workspace:FindFirstChild("Players")
+	if playersFolder then
+		return playersFolder:FindFirstChild(player.Name)
+	end
+	return nil
+end
+
 local function isLastLife()
 	local model = getPlayerModel()
 	return model and model:GetAttribute("LastLife") == true
 end
 
 local function setupCharacter(char)
-	if not isScriptActive then return end
-	if syncConn then syncConn:Disconnect() syncConn = nil end
-	if currentMdl then currentMdl:Destroy() currentMdl = nil end
-
+	local originalParts = {}
 	for _, v in ipairs(char:GetDescendants()) do
-		if v:IsA("BasePart") then v.Transparency = 1 end
-		if v:IsA("Decal") or v:IsA("Texture") then v.Transparency = 1 end
+		if v:IsA("BasePart") then table.insert(originalParts, v) end
 	end
+	for _, part in ipairs(originalParts) do part.Transparency = 1 end
 	
-	local oldVisual = getPlayerModel()
+	local playersFolder = workspace:FindFirstChild("Players")
+	local oldVisual = playersFolder and playersFolder:FindFirstChild(player.Name)
 	if oldVisual then
 		for _, v in ipairs(oldVisual:GetDescendants()) do
 			if v:IsA("BasePart") then v.Transparency = 1 end
-			if v:IsA("Decal") or v:IsA("Texture") then v.Transparency = 1 end
 		end
 	end
 	
 	local mdl = loadAsset(ASSET_ID)
 	if not mdl then return end
-	mdl.Parent = oldVisual or char
-	currentMdl = mdl
+	if oldVisual then mdl.Parent = oldVisual else mdl.Parent = char end
 
-	local hrp = char:WaitForChild("HumanoidRootPart", 5)
-	local newHrp = mdl:WaitForChild("HumanoidRootPart", 5)
+	task.wait(0.5)
+
+	local lastLifeActive = isLastLife()
+	if lastLifeActive then
+		local brokenFolder = mdl:FindFirstChild("Broken")
+		if brokenFolder then
+			for _, part in ipairs(brokenFolder:GetDescendants()) do
+				if part:IsA("BasePart") then
+					part.Transparency = 0
+				end
+			end
+		end
+		local circularFolder = mdl:FindFirstChild("Circular")
+		if circularFolder then
+			for _, part in ipairs(circularFolder:GetDescendants()) do
+				if part:IsA("BasePart") then
+					part.Transparency = 1
+				end
+			end
+		end
+	end
+
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	local newHrp = mdl:FindFirstChild("HumanoidRootPart")
 	if not hrp or not newHrp then mdl:Destroy() return end
 	
 	newHrp.Anchored = true
@@ -157,132 +183,122 @@ local function setupCharacter(char)
 	if existingAnim then existingAnim:Destroy() end
 	
 	for _, v in ipairs(mdl:GetDescendants()) do
-		if v:IsA("BasePart") then v.CanCollide = false end
+		if v:IsA("BasePart") then
+			v.CanCollide = false
+		end
 	end
 	
 	newHrp.CFrame = hrp.CFrame
+	task.wait(0.1)
+	newHrp.Transparency = 1
 	
+	local syncConn
 	syncConn = RunService.Stepped:Connect(function()
 		if not char.Parent or not hrp.Parent or not newHrp.Parent then
-			if syncConn then syncConn:Disconnect() syncConn = nil end
+			if syncConn then syncConn:Disconnect() end
 			return
 		end
 		newHrp.CFrame = hrp.CFrame
-		
-		-- Ocultado constante y agresivo del modelo base
-		if oldVisual and oldVisual.Parent then
-			local defaultFolder = oldVisual:FindFirstChild("Default")
-			if defaultFolder then
-				for _, v in ipairs(defaultFolder:GetDescendants()) do
-					if v:IsA("BasePart") and v.Transparency ~= 1 then
-						v.Transparency = 1
-					elseif (v:IsA("Decal") or v:IsA("Texture")) and v.Transparency ~= 1 then
-						v.Transparency = 1
+	end)
+	
+	local function monitorLastLife()
+		while char and char.Parent do
+			local lastLifeActive = isLastLife()
+			local brokenFolder = mdl:FindFirstChild("Broken")
+			local circularFolder = mdl:FindFirstChild("Circular")
+
+			if lastLifeActive then
+				if brokenFolder then
+					for _, part in ipairs(brokenFolder:GetDescendants()) do
+						if part:IsA("BasePart") then
+							part.Transparency = 0
+						end
+					end
+				end
+				if circularFolder then
+					for _, part in ipairs(circularFolder:GetDescendants()) do
+						if part:IsA("BasePart") then
+							part.Transparency = 1
+						end
+					end
+				end
+			else
+				if brokenFolder then
+					for _, part in ipairs(brokenFolder:GetDescendants()) do
+						if part:IsA("BasePart") then
+							part.Transparency = 1
+						end
+					end
+				end
+				if circularFolder then
+					for _, part in ipairs(circularFolder:GetDescendants()) do
+						if part:IsA("BasePart") then
+							part.Transparency = 0
+						end
 					end
 				end
 			end
-		end
-	end)
-	
-	-- Monitoreo de última vida inteligente
-	task.spawn(function()
-		local previousLifeState = nil
-		while char and char.Parent and currentMdl and currentMdl.Parent do
-			local currentLifeState = isLastLife()
-			
-			if currentLifeState ~= previousLifeState then
-				previousLifeState = currentLifeState
-				local brokenFolder = mdl:FindFirstChild("Broken")
-				local circularFolder = mdl:FindFirstChild("Circular")
 
-				if currentLifeState then
-					if brokenFolder then for _, p in ipairs(brokenFolder:GetDescendants()) do if p:IsA("BasePart") then p.Transparency = 0 end end end
-					if circularFolder then for _, p in ipairs(circularFolder:GetDescendants()) do if p:IsA("BasePart") then p.Transparency = 1 end end end
-				else
-					if brokenFolder then for _, p in ipairs(brokenFolder:GetDescendants()) do if p:IsA("BasePart") then p.Transparency = 1 end end end
-					if circularFolder then for _, p in ipairs(circularFolder:GetDescendants()) do if p:IsA("BasePart") then p.Transparency = 0 end end end
-				end
-			end
 			task.wait(0.5)
 		end
-	end)
-end
-
-local function startScript()
-	if isScriptActive then return end
-	isScriptActive = true
-	if character then setupCharacter(character) end
-end
-
-local function stopScript()
-	if not isScriptActive then return end
-	isScriptActive = false
-	if syncConn then syncConn:Disconnect() syncConn = nil end
-	if currentMdl then currentMdl:Destroy() currentMdl = nil end
-	stopSpindashFollow()
-	
-	-- Restaurar visibilidad si cambia de personaje
-	if character then
-		for _, v in ipairs(character:GetDescendants()) do
-			if v:IsA("BasePart") and v.Name ~= "HumanoidRootPart" then v.Transparency = 0 end
-		end
 	end
-	local oldVisual = getPlayerModel()
-	if oldVisual then
-		local defaultFolder = oldVisual:FindFirstChild("Default")
-		if defaultFolder then
-			for _, v in ipairs(defaultFolder:GetDescendants()) do
-				if v:IsA("BasePart") and v.Name ~= "HumanoidRootPart" then v.Transparency = 0 end
-				if v:IsA("Decal") or v:IsA("Texture") then v.Transparency = 0 end
+
+	task.spawn(monitorLastLife)
+end
+
+task.spawn(function()
+	while true do
+		local playersFolder = workspace:FindFirstChild("Players")
+		if playersFolder then
+			local playerFolder = playersFolder:FindFirstChild(player.Name)
+			if playerFolder then
+				local defaultFolder = playerFolder:FindFirstChild("Default")
+				if defaultFolder then
+					local waist = defaultFolder:FindFirstChild("Waist")
+					local hrpDefault = defaultFolder:FindFirstChild("HumanoidRootPart")
+					if waist and waist:IsA("BasePart") then waist.Transparency = 1 end
+					if hrpDefault and hrpDefault:IsA("BasePart") then hrpDefault.Transparency = 1 end
+				end
 			end
 		end
+		task.wait(0.1)
 	end
+end)
+
+if character then
+	setupCharacter(character)
 end
 
 player.CharacterAdded:Connect(function(newChar)
 	character = newChar
-	if isScriptActive then
-		task.wait(0.5)
-		setupCharacter(newChar)
-	end
-end)
-
--- Sistema de detección del personaje Knuckles
-local isCurrentlyKnuckles = false
-task.spawn(function()
-	while true do
-		local model = getPlayerModel()
-		if model then
-			local check = (model:GetAttribute("Character") == "Knuckles")
-			if check ~= isCurrentlyKnuckles then
-				isCurrentlyKnuckles = check
-				if isCurrentlyKnuckles then startScript() else stopScript() end
-			end
-			model:GetAttributeChangedSignal("Character"):Wait()
-		else
-			task.wait(1)
-		end
-	end
+	setupCharacter(newChar)
 end)
 
 -- ==================== LMS MUSIC ====================
+
 local function loadCustomAsset(url, filename)
-	if not isfile(filename) then writefile(filename, game:HttpGet(url)) end
+	if not isfile(filename) then
+		writefile(filename, game:HttpGet(url))
+	end
 	return getcustomasset(filename)
 end
 
-local CUSTOM_MUSIC = loadCustomAsset("", ".mp3")
+local CUSTOM_MUSIC = loadCustomAsset(
+	"",
+	".mp3"
+)
 
 task.spawn(function()
-	local theme = game:GetService("ReplicatedStorage"):FindFirstChild("ClientAssets")
+	local theme = game:GetService("ReplicatedStorage")
+		:FindFirstChild("ClientAssets")
+		and game.ReplicatedStorage.ClientAssets:FindFirstChild("Sounds")
+		and game.ReplicatedStorage.ClientAssets.Sounds:FindFirstChild("mus")
+		and game.ReplicatedStorage.ClientAssets.Sounds.mus:FindFirstChild("Game")
+		and game.ReplicatedStorage.ClientAssets.Sounds.mus.Game:FindFirstChild("Round")
+		and game.ReplicatedStorage.ClientAssets.Sounds.mus.Game.Round:FindFirstChild("SoloTheme")
+		and game.ReplicatedStorage.ClientAssets.Sounds.mus.Game.Round.SoloTheme:FindFirstChild("SonicSolo")
 	if not theme then return end
-	theme = theme:FindFirstChild("Sounds")
-	if not theme then return end
-	theme = theme:FindFirstChild("mus") and theme.mus:FindFirstChild("Game") and theme.mus.Game:FindFirstChild("Round") and theme.mus.Game.Round:FindFirstChild("SoloTheme") and theme.mus.Game.Round.SoloTheme:FindFirstChild("SonicSolo")
-	
-	if theme then
-		theme.SoundId = CUSTOM_MUSIC
-		theme.Volume = 2
-		theme.Looped = true
-	end
+	theme.SoundId = CUSTOM_MUSIC
+	theme.Volume = 2
+	theme.Looped = true
 end)
