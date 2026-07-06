@@ -1,9 +1,8 @@
-
 local UserInputService = game:GetService("UserInputService")
 local SoundService = game:GetService("SoundService")
 local Players = game:GetService("Players")
 local LogService = game:GetService("LogService")
-local Debris = game:GetService("Debris") -- Usado para limpieza de memoria
+local Debris = game:GetService("Debris")
 local localPlayer = Players.LocalPlayer
 
 math.randomseed(os.time())
@@ -176,87 +175,59 @@ local PERSONAJES_CONFIG = {
 }
 
 ---------------------------------------------------------
--- 2. DESCARGA SEGURA Y MAPEO DE AUDIOS
+-- 2. CARGA BAJO DEMANDA Y REPRODUCTOR DE AUDIO
 ---------------------------------------------------------
 if not isfolder("MusicCache") then makefolder("MusicCache") end
 
-local function descargarAudioSeguro(fileName, url)
+-- Esta función selecciona un audio, lo descarga SI ES NECESARIO, y lo reproduce.
+local function playRandomSound(nombreHabilidad, assetTable)
+    if not assetTable or #assetTable == 0 then return end 
+    
+    local randomIndex = math.random(1, #assetTable)
+    local url = assetTable[randomIndex]
+    
+    -- Nombramos el archivo de forma única para la habilidad y su índice
+    local fileName = "cache_" .. nombreHabilidad .. "_" .. randomIndex .. ".mp3"
     local ruta = "MusicCache/" .. fileName
     
-    -- Verificar que el archivo existe y no está corrupto/vacío
-    if isfile(ruta) and #readfile(ruta) > 500 then 
-        return getcustomasset(ruta) 
-    end
-
-    local exito, resultado
-    local intentos = 0
-    
-    -- Intenta descargarlo hasta 3 veces
-    while intentos < 3 do
-        exito, resultado = pcall(function()
-            return game:HttpGet(url)
-        end)
+    task.spawn(function()
+        local assetId = nil
         
-        if exito and resultado and #resultado > 500 then
-            writefile(ruta, resultado)
-            return getcustomasset(ruta)
-        end
-        intentos = intentos + 1
-        task.wait(0.5) -- Espera antes del reintento para evitar bloqueos
-    end
-    
-    warn("No se pudo descargar el audio: " .. url)
-    return nil
-end
-
-local AUDIOS_CARGADOS = {}
-local contadorArchivos = 1
-
--- Corrutina para no congelar el juego mientras descarga los 80 audios
-task.spawn(function()
-    for nombrePersonaje, habilidades in pairs(PERSONAJES_CONFIG) do
-        for nombreHabilidad, datos in pairs(habilidades) do
-            AUDIOS_CARGADOS[nombreHabilidad] = {} 
+        -- Verificar si ya lo descargamos previamente en esta o en otra sesión
+        if isfile(ruta) and #readfile(ruta) > 500 then 
+            assetId = getcustomasset(ruta) 
+        else
+            -- Si no existe, lo descargamos on-the-fly
+            local exito, resultado = pcall(function()
+                return game:HttpGet(url)
+            end)
             
-            for _, url in ipairs(datos.Audios) do
-                local fileName = "voice_cache_" .. contadorArchivos .. ".mp3"
-                local assetCargado = descargarAudioSeguro(fileName, url)
-                
-                if assetCargado then
-                    table.insert(AUDIOS_CARGADOS[nombreHabilidad], assetCargado)
-                end
-                
-                contadorArchivos = contadorArchivos + 1
-                task.wait(0.05) -- Pausa mínima para no saturar los Rate Limits de GitHub
+            if exito and resultado and #resultado > 500 then
+                writefile(ruta, resultado)
+                assetId = getcustomasset(ruta)
+                resultado = nil -- IMPORTANTE: Liberamos la memoria de la cadena de texto inmediatamente
+            else
+                warn("No se pudo descargar el audio: " .. url)
+                return
             end
         end
-    end
-    print("¡Todos los audios han sido cargados correctamente!")
-end)
-
----------------------------------------------------------
--- 3. REPRODUCTOR DE AUDIO
----------------------------------------------------------
-local function playSound(assetPath)
-    local sound = Instance.new("Sound")
-    sound.SoundId = assetPath
-    sound.Volume = 1
-    sound.Parent = SoundService 
-    sound:Play()
-    
-    -- Se elimina cuando termina, o con Debris como respaldo seguro
-    sound.Ended:Connect(function() sound:Destroy() end)
-    Debris:AddItem(sound, 10) 
-end
-
-local function playRandomSound(assetTable)
-    if not assetTable or #assetTable == 0 then return end 
-    local selectedAsset = assetTable[math.random(1, #assetTable)]
-    playSound(selectedAsset)
+        
+        -- Si obtuvimos el asset exitosamente, lo reproducimos
+        if assetId then
+            local sound = Instance.new("Sound")
+            sound.SoundId = assetId
+            sound.Volume = 1
+            sound.Parent = SoundService 
+            sound:Play()
+            
+            sound.Ended:Connect(function() sound:Destroy() end)
+            Debris:AddItem(sound, 10) 
+        end
+    end)
 end
 
 ---------------------------------------------------------
--- 4. CAPTURAR LA INTENCIÓN DEL JUGADOR
+-- 3. CAPTURAR LA INTENCIÓN DEL JUGADOR
 ---------------------------------------------------------
 local ultimaHabilidadIntentada = nil
 
@@ -293,9 +264,8 @@ LogService.MessageOut:Connect(function(message, messageType)
 end)
 
 ---------------------------------------------------------
--- 5. DETECCIÓN EXACTA (ANIMACIONES) - ARREGLADO
+-- 4. DETECCIÓN EXACTA (ANIMACIONES)
 ---------------------------------------------------------
--- Extrae solo el ID numérico ignorando "rbxassetid://" o "http://"
 local function extraerId(texto)
     return string.match(tostring(texto), "%d+")
 end
@@ -310,23 +280,32 @@ local function setupCharacter(character)
     animator.AnimationPlayed:Connect(function(animTrack)
         if not animTrack.Animation then return end
         
-        -- Obtiene solo los números de la animación que se está reproduciendo
         local currentAnimId = extraerId(animTrack.Animation.AnimationId)
         if not currentAnimId then return end
         
         for _, habilidades in pairs(PERSONAJES_CONFIG) do
             for nombreHabilidad, datos in pairs(habilidades) do
                 
-                -- Compara los puros números en lugar del string completo
                 if extraerId(datos.AnimId) == currentAnimId then
+                    local function triggerAudio()
+                        local delayTime = datos.DelayAudio or 0
+                        if delayTime > 0 then
+                            task.delay(delayTime, function()
+                                playRandomSound(nombreHabilidad, datos.Audios)
+                            end)
+                        else
+                            playRandomSound(nombreHabilidad, datos.Audios)
+                        end
+                    end
+
                     if datos.Tecla then
                         if ultimaHabilidadIntentada == nombreHabilidad then
-                            playRandomSound(AUDIOS_CARGADOS[nombreHabilidad])
+                            triggerAudio()
                             ultimaHabilidadIntentada = nil 
                             return
                         end
                     else
-                        playRandomSound(AUDIOS_CARGADOS[nombreHabilidad])
+                        triggerAudio()
                         return
                     end
                 end
