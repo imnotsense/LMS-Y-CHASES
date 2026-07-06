@@ -401,30 +401,3 @@ if isSonic() then
 	isCurrentlySonic = true
 	startScript()
 end
-
-local function loadCustomAsset(url, filename)
-	if not isfile(filename) then
-		writefile(filename, game:HttpGet(url))
-	end
-	return getcustomasset(filename)
-end
-
-local CUSTOM_MUSIC = loadCustomAsset(
-	"https://github.com/monicagalindo-wq/RECUP/raw/refs/heads/main/FindYourFlame.mp3",
-	"FindYourFlame.mp3"
-)
-
-task.spawn(function()
-	local theme = game:GetService("ReplicatedStorage")
-		:FindFirstChild("ClientAssets")
-		and game.ReplicatedStorage.ClientAssets:FindFirstChild("Sounds")
-		and game.ReplicatedStorage.ClientAssets.Sounds:FindFirstChild("mus")
-		and game.ReplicatedStorage.ClientAssets.Sounds.mus:FindFirstChild("Game")
-		and game.ReplicatedStorage.ClientAssets.Sounds.mus.Game:FindFirstChild("Round")
-		and game.ReplicatedStorage.ClientAssets.Sounds.mus.Game.Round:FindFirstChild("SoloTheme")
-		and game.ReplicatedStorage.ClientAssets.Sounds.mus.Game.Round.SoloTheme:FindFirstChild("SonicSolo")
-	if not theme then return end
-	theme.SoundId = CUSTOM_MUSIC
-	theme.Volume = 1.5
-	theme.Looped = true
-end)
