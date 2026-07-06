@@ -10,7 +10,7 @@ local StarterGui = game:GetService("StarterGui")
 pcall(function()
     StarterGui:SetCore("SendNotification", {
         Title = "Frostter UI",
-        Text = "Este scrpt esta echo para no dar ventajas injustas a los usuarios\n\nporfavor reportar todos los bugs\n\nen la cuenta de tiktok: frostter_uwu",
+        Text = "Este scrpt esta echo para no dar ventajas injustas a los usuarios",
         Duration = 10
     })
 end)
