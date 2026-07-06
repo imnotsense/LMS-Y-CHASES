@@ -175,59 +175,70 @@ local PERSONAJES_CONFIG = {
 }
 
 ---------------------------------------------------------
--- 2. CARGA BAJO DEMANDA Y REPRODUCTOR DE AUDIO
+-- 2. VERIFICACIÓN INICIAL Y DESCARGA ÚNICA (PRE-CACHE)
 ---------------------------------------------------------
 if not isfolder("MusicCache") then makefolder("MusicCache") end
 
--- Esta función selecciona un audio, lo descarga SI ES NECESARIO, y lo reproduce.
-local function playRandomSound(nombreHabilidad, assetTable)
-    if not assetTable or #assetTable == 0 then return end 
-    
-    local randomIndex = math.random(1, #assetTable)
-    local url = assetTable[randomIndex]
-    
-    -- Nombramos el archivo de forma única para la habilidad y su índice
-    local fileName = "cache_" .. nombreHabilidad .. "_" .. randomIndex .. ".mp3"
-    local ruta = "MusicCache/" .. fileName
-    
-    task.spawn(function()
-        local assetId = nil
-        
-        -- Verificar si ya lo descargamos previamente en esta o en otra sesión
-        if isfile(ruta) and #readfile(ruta) > 500 then 
-            assetId = getcustomasset(ruta) 
-        else
-            -- Si no existe, lo descargamos on-the-fly
-            local exito, resultado = pcall(function()
-                return game:HttpGet(url)
-            end)
+local AUDIOS_CARGADOS = {}
+
+-- Esta corrutina escanea todos los archivos al iniciar el script
+task.spawn(function()
+    for nombrePersonaje, habilidades in pairs(PERSONAJES_CONFIG) do
+        for nombreHabilidad, datos in pairs(habilidades) do
+            AUDIOS_CARGADOS[nombreHabilidad] = {} 
             
-            if exito and resultado and #resultado > 500 then
-                writefile(ruta, resultado)
-                assetId = getcustomasset(ruta)
-                resultado = nil -- IMPORTANTE: Liberamos la memoria de la cadena de texto inmediatamente
-            else
-                warn("No se pudo descargar el audio: " .. url)
-                return
+            for index, url in ipairs(datos.Audios) do
+                -- Nombres fijos y únicos. Si ya existe, jamás se vuelve a descargar.
+                local fileName = nombrePersonaje .. "_" .. nombreHabilidad .. "_" .. index .. ".mp3"
+                local ruta = "MusicCache/" .. fileName
+                
+                if isfile(ruta) and #readfile(ruta) > 500 then
+                    -- El archivo ya estaba descargado de una vez anterior. Se carga al instante.
+                    table.insert(AUDIOS_CARGADOS[nombreHabilidad], getcustomasset(ruta))
+                else
+                    -- Si falta, lo descargamos
+                    local exito, resultado = pcall(function() return game:HttpGet(url) end)
+                    
+                    if exito and resultado and #resultado > 500 then
+                        writefile(ruta, resultado)
+                        table.insert(AUDIOS_CARGADOS[nombreHabilidad], getcustomasset(ruta))
+                        
+                        -- CRÍTICO PARA EL RAM: Borramos la variable pesada de memoria inmediatamente
+                        resultado = nil 
+                        
+                        -- Una pequeñísima pausa para que el Garbage Collector limpie la RAM
+                        task.wait(0.05) 
+                    else
+                        warn("Falló la descarga inicial del audio: " .. url)
+                    end
+                end
             end
         end
-        
-        -- Si obtuvimos el asset exitosamente, lo reproducimos
-        if assetId then
-            local sound = Instance.new("Sound")
-            sound.SoundId = assetId
-            sound.Volume = 1
-            sound.Parent = SoundService 
-            sound:Play()
-            
-            sound.Ended:Connect(function() sound:Destroy() end)
-            Debris:AddItem(sound, 10) 
-        end
-    end)
+    end
+    print("¡Verificación de caché completada! Audios listos para sonar al instante.")
+end)
+
+---------------------------------------------------------
+-- 3. REPRODUCTOR INSTANTÁNEO
+---------------------------------------------------------
+local function playRandomSound(nombreHabilidad)
+    local assetTable = AUDIOS_CARGADOS[nombreHabilidad]
+    if not assetTable or #assetTable == 0 then return end 
+    
+    local selectedAssetId = assetTable[math.random(1, #assetTable)]
+    
+    local sound = Instance.new("Sound")
+    sound.SoundId = selectedAssetId
+    sound.Volume = 1
+    sound.Parent = SoundService 
+    sound:Play()
+    
+    sound.Ended:Connect(function() sound:Destroy() end)
+    Debris:AddItem(sound, 10) 
 end
 
 ---------------------------------------------------------
--- 3. CAPTURAR LA INTENCIÓN DEL JUGADOR
+-- 4. CAPTURAR LA INTENCIÓN DEL JUGADOR
 ---------------------------------------------------------
 local ultimaHabilidadIntentada = nil
 
@@ -264,7 +275,7 @@ LogService.MessageOut:Connect(function(message, messageType)
 end)
 
 ---------------------------------------------------------
--- 4. DETECCIÓN EXACTA (ANIMACIONES)
+-- 5. DETECCIÓN EXACTA (ANIMACIONES)
 ---------------------------------------------------------
 local function extraerId(texto)
     return string.match(tostring(texto), "%d+")
@@ -287,14 +298,15 @@ local function setupCharacter(character)
             for nombreHabilidad, datos in pairs(habilidades) do
                 
                 if extraerId(datos.AnimId) == currentAnimId then
+                    
                     local function triggerAudio()
                         local delayTime = datos.DelayAudio or 0
                         if delayTime > 0 then
                             task.delay(delayTime, function()
-                                playRandomSound(nombreHabilidad, datos.Audios)
+                                playRandomSound(nombreHabilidad)
                             end)
                         else
-                            playRandomSound(nombreHabilidad, datos.Audios)
+                            playRandomSound(nombreHabilidad)
                         end
                     end
 
