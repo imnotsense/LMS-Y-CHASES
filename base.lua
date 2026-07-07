@@ -1388,11 +1388,10 @@ local function manejarSkin(valor, url)
     end
 end
 
-crearToggle(SettingsFrame, "Paced Fleetway", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/pacedfleetway.lua") end)
-crearToggle(SettingsFrame, "2011X Fleetway", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/2011xfleetway.lua") end)
 crearToggle(SettingsFrame, "negagen fleetway", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/negagenfleetway.lua") end)
 crearToggle(SettingsFrame, "Fleetway-SuperScourge", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/superscourge.lua") end)
 crearToggle(SettingsFrame, "Cream.exe (TailsDoll)", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/thaLILNIKKI/Cream.LMS-Outcome-Memories/HEAD/doll.lua") end)
+crearToggle(SettingsFrame, "Glorbwire (TailsDoll)", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/glorbwire.lua") end)
 crearToggle(SettingsFrame, "TD Kolossos", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/TDKolossos.lua") end)
 crearToggle(SettingsFrame, "Neru Tails", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/tailsneru.lua") end)
 crearToggle(SettingsFrame, "Tails-Megaman", false, colorSkins, function(v) manejarSkin(v, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/Tailsmega.lua") end)
@@ -1412,6 +1411,9 @@ local function aplicarVolumen(obj)
         end    
     end
 end
+crearToggle(SettingsFrame, "Musica de lobby Y Mapas", false, colorCian, function(valor)     
+    if valor then pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/ambiente/musica.lua"))() end) end 
+end)
 crearToggle(SettingsFrame, "Voces Personajes (no activar mas de una vez)", false, colorCian, function(valor)     
     if valor then pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/VocesPersonajes.lua"))() end) end 
 end)
