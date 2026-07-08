@@ -1360,30 +1360,7 @@ end)
 crearToggle(SettingsFrame, "Mejor Calidad Estética (Cinemática)", false, colorVioleta, manejarCalidadEstetica)
 
 crearCategoria(SettingsFrame, "Exe's", colorRojo)
-
-local togglesChasesExes = {}
--- Botón general para activar/desactivar todos los Exes al mismo tiempo (Opcional, igual que el de LMS)
-crearToggle(SettingsFrame, "ACTIVAR TODOS LOS CHASES (EXES)", true, colorRojo, function(valor)    
-    Chase_Activo = valor
-    manejarChases(valor)
-    for _, toggle in pairs(togglesChasesExes) do toggle.Update(valor, false) end
-end)
-
--- Botones individuales para cada Exe
-local listaExes = {
-    {id = "2011x", nombre = "2011x (y variantes)"},
-    {id = "Tailsdoll", nombre = "Tailsdoll"},
-    {id = "Kolossos", nombre = "Kolossos"},
-    {id = "Fleetway", nombre = "Fleetway"}
-}
-
-for _, exeData in ipairs(listaExes) do
-    togglesChasesExes[exeData.id] = crearToggle(SettingsFrame, "Chase Custom: " .. exeData.nombre, true, colorRojo, function(valor)
-        Chases_Exes_Activos[exeData.id] = valor
-        -- A partir de aquí tu script o la lógica del juego podrá leer Chases_Exes_Activos["nombre_del_exe"] 
-        -- para activar su chase individualmente.
-    end)
-end
+crearToggle(SettingsFrame, "Killers: Chases Custom Habilitados", true, colorRojo, manejarChases)
 crearToggle(SettingsFrame, "Fleetway LMS (Baja Vida)", false, colorRojo, function(valor) Fleetway_LMS_Activo = valor end)
 
 crearCategoria(SettingsFrame, "Supervivientes", colorVerde)
