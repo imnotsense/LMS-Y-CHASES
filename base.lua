@@ -11,7 +11,7 @@ pcall(function()
     StarterGui:SetCore("SendNotification", {
         Title = "Frostter UI",
         Text = "Este script esta echo para no dar ventajas injustas a los usuarios",
-        Duration = 10
+        Duration = 7
     })
 end)
 
@@ -65,11 +65,14 @@ local Atmosfera_Quitada = false
 
 -- VARIABLES CHASES ACTUALIZADAS
 local Chase_Estados = {
-    ["2011x"] = true,
+    ["2011x_Default"] = true,
+    ["2011x_Retro"] = true,
+    ["2011x_Miku"] = true,
     ["TailsDoll"] = true,
     ["Kolossos"] = true,
     ["Fleetway"] = true
 }
+
 local Fleetway_LMS_Activo = false
 
 local LMS_Estados = {} 
@@ -1396,8 +1399,14 @@ crearToggle(SettingsFrame, "Mejor Calidad Estética (Cinemática)", false, color
 -- ==========================================
 crearCategoria(SettingsFrame, "Exe's", colorRojo)
 
-crearToggle(SettingsFrame, "Chase Custom: 2011x (y variantes)", true, colorRojo, function(valor) 
-    manejarChases("2011x", valor) 
+crearToggle(SettingsFrame, "Chase Custom: 2011x (Default)", true, colorRojo, function(valor)
+    manejarChases("2011x_Default", valor)
+end)
+crearToggle(SettingsFrame, "Chase Custom: 2011x (RETRO)", true, colorRojo, function(valor)
+    manejarChases("2011x_Retro", valor)
+end)
+crearToggle(SettingsFrame, "Chase Custom: 2011x (Miku)", true, colorRojo, function(valor)
+    manejarChases("2011x_Miku", valor)
 end)
 crearToggle(SettingsFrame, "Chase Custom: TailsDoll", true, colorRojo, function(valor) 
     manejarChases("TailsDoll", valor) 
@@ -1863,13 +1872,19 @@ task.spawn(function()
 
     pcall(function()
         -- 2011x
-        registrarIdOriginal({"2011x", "Default", "NormalChase"}, "https://github.com/imnotsense/LMS-Y-CHASES/raw/refs/heads/main/2011x%20normal.mp3", "2011NormalChase_v2.mp3", 0.5, "2011x")
-        registrarIdOriginal({"2011x", "Default", "LastLifeChase"}, "https://github.com/imnotsense/LMS-Y-CHASES/raw/refs/heads/main/2011x%20lastlife.mp3", "2011LastLifeChase_v2.mp3", 0.5, "2011x")
-        registrarIdOriginal({"2011x", "RETRO", "NormalChase"}, "https://github.com/imnotsense/LMS-Y-CHASES/raw/refs/heads/main/CLASSICO%202011X%20CHASETHEME.mp3", "NormalChase_v2.mp3", 0.5, "2011x")
-        registrarIdOriginal({"2011x", "RETRO", "LastLifeChase"}, "https://github.com/imnotsense/LMS-Y-CHASES/raw/refs/heads/main/lastlife%20classic%202011x.mp3", "lastlifeClassic_v2.mp3", 0.5, "2011x")
-        registrarIdOriginal({"2011x", "Default", "Rage"}, "https://github.com/imnotsense/LMS-Y-CHASES/raw/refs/heads/main/2011X%20RAGE.mp3", "NormalRage.mp3", 0.3, "2011x")
-        registrarIdOriginal({"2011x", "RETRO", "Rage"}, "https://raw.githubusercontent.com/IceKnight125/OutcomeMemories1227/main/ClassicRage.mp3", "ClassicRage.mp3", 0.3, "2011x")
-        registrarIdOriginal({"2011x", "miku", "Rage"}, "https://raw.githubusercontent.com/IceKnight125/OutcomeMemories1227/main/MikuRage.mp3", "MikuRage.mp3", 0.3, "2011x")
+            -- 2011x Default
+    registrarIdOriginal({"2011x", "Default", "NormalChase"}, "https://github.com/imnotsense/LMS-Y-CHASES/raw/refs/heads/main/2011x%20normal.mp3", "2011NormalChase_v2.mp3", 0.5, "2011x_Default")
+    registrarIdOriginal({"2011x", "Default", "LastLifeChase"}, "https://github.com/imnotsense/LMS-Y-CHASES/raw/refs/heads/main/2011x%20lastlife.mp3", "2011LastLifeChase_v2.mp3", 0.5, "2011x_Default")
+    registrarIdOriginal({"2011x", "Default", "Rage"}, "https://github.com/imnotsense/LMS-Y-CHASES/raw/refs/heads/main/2011X%20RAGE.mp3", "NormalRage.mp3", 0.3, "2011x_Default")
+
+    -- 2011x RETRO
+    registrarIdOriginal({"2011x", "RETRO", "NormalChase"}, "https://github.com/imnotsense/LMS-Y-CHASES/raw/refs/heads/main/CLASSICO%202011X%20CHASETHEME.mp3", "NormalChase_v2.mp3", 0.5, "2011x_Retro")
+    registrarIdOriginal({"2011x", "RETRO", "LastLifeChase"}, "https://github.com/imnotsense/LMS-Y-CHASES/raw/refs/heads/main/lastlife%20classic%202011x.mp3", "lastlifeClassic_v2.mp3", 0.5, "2011x_Retro")
+    registrarIdOriginal({"2011x", "RETRO", "Rage"}, "https://raw.githubusercontent.com/IceKnight125/OutcomeMemories1227/main/ClassicRage.mp3", "ClassicRage.mp3", 0.3, "2011x_Retro")
+
+    -- 2011x Miku
+    registrarIdOriginal({"2011x", "miku", "Rage"}, "https://raw.githubusercontent.com/IceKnight125/OutcomeMemories1227/main/MikuRage.mp3", "MikuRage.mp3", 0.3, "2011x_Miku")
+
 
         -- TailsDoll
         registrarIdOriginal({"TailsDoll", "Default", "NormalChase"}, "https://raw.githubusercontent.com/imnotsense/LMS-Y-CHASES/main/tailsdoll-normal.mp3", "TailsDollNormal.mp3", 0.5, "TailsDoll")
