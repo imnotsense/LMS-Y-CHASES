@@ -6,9 +6,51 @@ local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 
+-- Variables de estado
 local currentSpindashModel = nil
 local spindashSpinConnection = nil
+local customCharacterModel = nil
+local customCharacterActive = false
+local charConnections = {}
 
+-- ==========================================
+-- SISTEMA DE DETECCIÓN DE PERSONAJE
+-- ==========================================
+local function checkIfKolossos()
+	local playersFolder = workspace:FindFirstChild("Players")
+	local playerFolder = playersFolder and playersFolder:FindFirstChild(player.Name)
+	
+	if not playerFolder then return false end
+	
+	-- Método 1: Atributos del jugador (Común en Outcome Memories)
+	local charAttr = playerFolder:GetAttribute("Character") or playerFolder:GetAttribute("CharacterName")
+	if charAttr and string.find(string.lower(tostring(charAttr)), "kolossos") then
+		return true
+	end
+	
+	-- Método 2: Valores StringValue en la carpeta
+	for _, child in ipairs(playerFolder:GetChildren()) do
+		if child:IsA("StringValue") and string.find(string.lower(child.Value), "kolossos") then
+			return true
+		end
+	end
+	
+	-- Método 3: Nombre del modelo original en la carpeta Default
+	local defaultFolder = playerFolder:FindFirstChild("Default")
+	if defaultFolder then
+		for _, child in ipairs(defaultFolder:GetChildren()) do
+			if child:IsA("Model") and string.find(string.lower(child.Name), "kolossos") then
+				return true
+			end
+		end
+	end
+	
+	return false
+end
+
+-- ==========================================
+-- LÓGICA DEL SPINDASH
+-- ==========================================
 local function stopSpindashFollow()
 	if spindashSpinConnection then
 		spindashSpinConnection:Disconnect()
@@ -26,6 +68,12 @@ local function stopSpindashFollow()
 	
 	if originalPart then
 		originalPart.Transparency = 0
+		for _, effect in ipairs(originalPart:GetDescendants()) do
+			if effect:IsA("BasePart") then effect.Transparency = 0
+			elseif effect:IsA("PointLight") or effect:IsA("SpotLight") or effect:IsA("SurfaceLight") then effect.Enabled = true
+			elseif effect:IsA("ParticleEmitter") or effect:IsA("Trail") or effect:IsA("Beam") then effect.Enabled = true
+			end
+		end
 	end
 end
 
@@ -39,7 +87,6 @@ local function startSpindashFollow(spindashPart)
 		end
 		
 		local targetCFrame = spindashPart.CFrame
-		
 		if currentSpindashModel:IsA("BasePart") then
 			currentSpindashModel.CFrame = targetCFrame
 		else
@@ -49,6 +96,7 @@ local function startSpindashFollow(spindashPart)
 end
 
 local function replaceSpindashMesh()
+	if not CUSTOM_SPINDASH_ID then return end -- Evitar error si no hay ID
 	local playersFolder = workspace:FindFirstChild("Players")
 	if not playersFolder then return end
 	local playerFolder = playersFolder:FindFirstChild(player.Name)
@@ -76,12 +124,9 @@ local function replaceSpindashMesh()
 			
 			originalPart.Transparency = 1
 			for _, effect in ipairs(originalPart:GetDescendants()) do
-				if effect:IsA("BasePart") then
-					effect.Transparency = 1
-				elseif effect:IsA("PointLight") or effect:IsA("SpotLight") or effect:IsA("SurfaceLight") then
-					effect.Enabled = false
-				elseif effect:IsA("ParticleEmitter") or effect:IsA("Trail") or effect:IsA("Beam") then
-					effect.Enabled = false
+				if effect:IsA("BasePart") then effect.Transparency = 1
+				elseif effect:IsA("PointLight") or effect:IsA("SpotLight") or effect:IsA("SurfaceLight") then effect.Enabled = false
+				elseif effect:IsA("ParticleEmitter") or effect:IsA("Trail") or effect:IsA("Beam") then effect.Enabled = false
 				end
 			end
 			
@@ -91,11 +136,12 @@ local function replaceSpindashMesh()
 end
 
 RunService.Heartbeat:Connect(function()
+	local isKolossos = checkIfKolossos()
 	local playersFolder = workspace:FindFirstChild("Players")
 	local playerFolder = playersFolder and playersFolder:FindFirstChild(player.Name)
 	local spindashFolder = playerFolder and playerFolder:FindFirstChild("Spindash")
 	
-	if spindashFolder and spindashFolder:FindFirstChild("Spindash") then
+	if isKolossos and spindashFolder and spindashFolder:FindFirstChild("Spindash") then
 		if not currentSpindashModel then
 			replaceSpindashMesh()
 		end
@@ -106,6 +152,9 @@ RunService.Heartbeat:Connect(function()
 	end
 end)
 
+-- ==========================================
+-- LÓGICA DEL PERSONAJE PRINCIPAL
+-- ==========================================
 local function loadAsset(id)
 	local ok, objects = pcall(game.GetObjects, game, "rbxassetid://" .. id)
 	if not ok or not objects or #objects == 0 then return nil end
@@ -114,10 +163,7 @@ end
 
 local function getPlayerModel()
 	local playersFolder = workspace:FindFirstChild("Players")
-	if playersFolder then
-		return playersFolder:FindFirstChild(player.Name)
-	end
-	return nil
+	return playersFolder and playersFolder:FindFirstChild(player.Name)
 end
 
 local function isLastLife()
@@ -125,15 +171,48 @@ local function isLastLife()
 	return model and model:GetAttribute("LastLife") == true
 end
 
-local function setupCharacter(char)
-	local originalParts = {}
-	for _, v in ipairs(char:GetDescendants()) do
-		if v:IsA("BasePart") then table.insert(originalParts, v) end
-	end
-	for _, part in ipairs(originalParts) do part.Transparency = 1 end
+-- Función para limpiar y restaurar al personaje original
+local function removeCustomModel()
+	customCharacterActive = false
 	
-	local playersFolder = workspace:FindFirstChild("Players")
-	local oldVisual = playersFolder and playersFolder:FindFirstChild(player.Name)
+	-- Limpiar conexiones (Heartbeat, loops)
+	for _, conn in ipairs(charConnections) do
+		if typeof(conn) == "RBXScriptConnection" then conn:Disconnect() end
+	end
+	table.clear(charConnections)
+	
+	-- Destruir modelo custom
+	if customCharacterModel then
+		customCharacterModel:Destroy()
+		customCharacterModel = nil
+	end
+	
+	-- Restaurar visibilidad original
+	if character then
+		for _, v in ipairs(character:GetDescendants()) do
+			if v:IsA("BasePart") and v.Name ~= "HumanoidRootPart" then v.Transparency = 0 end
+		end
+	end
+	
+	local oldVisual = getPlayerModel()
+	if oldVisual then
+		for _, v in ipairs(oldVisual:GetDescendants()) do
+			if v:IsA("BasePart") and v.Name ~= "HumanoidRootPart" then v.Transparency = 0 end
+		end
+	end
+end
+
+-- Función para aplicar el modelo de Kolossos
+local function applyCustomModel(char)
+	if customCharacterActive then return end
+	customCharacterActive = true
+	
+	local oldVisual = getPlayerModel()
+	
+	-- Ocultar partes originales
+	for _, v in ipairs(char:GetDescendants()) do
+		if v:IsA("BasePart") then v.Transparency = 1 end
+	end
 	if oldVisual then
 		for _, v in ipairs(oldVisual:GetDescendants()) do
 			if v:IsA("BasePart") then v.Transparency = 1 end
@@ -141,34 +220,17 @@ local function setupCharacter(char)
 	end
 	
 	local mdl = loadAsset(ASSET_ID)
-	if not mdl then return end
-	if oldVisual then mdl.Parent = oldVisual else mdl.Parent = char end
-
-	task.wait(0.5)
-
-	local lastLifeActive = isLastLife()
-	if lastLifeActive then
-		local brokenFolder = mdl:FindFirstChild("Broken")
-		if brokenFolder then
-			for _, part in ipairs(brokenFolder:GetDescendants()) do
-				if part:IsA("BasePart") then
-					part.Transparency = 0
-				end
-			end
-		end
-		local circularFolder = mdl:FindFirstChild("Circular")
-		if circularFolder then
-			for _, part in ipairs(circularFolder:GetDescendants()) do
-				if part:IsA("BasePart") then
-					part.Transparency = 1
-				end
-			end
-		end
-	end
+	if not mdl then customCharacterActive = false return end
+	
+	mdl.Parent = oldVisual or char
+	customCharacterModel = mdl
 
 	local hrp = char:FindFirstChild("HumanoidRootPart")
 	local newHrp = mdl:FindFirstChild("HumanoidRootPart")
-	if not hrp or not newHrp then mdl:Destroy() return end
+	if not hrp or not newHrp then 
+		removeCustomModel() 
+		return 
+	end
 	
 	newHrp.Anchored = true
 	newHrp.Transparency = 1
@@ -179,74 +241,60 @@ local function setupCharacter(char)
 	if existingAnim then existingAnim:Destroy() end
 	
 	for _, v in ipairs(mdl:GetDescendants()) do
-		if v:IsA("BasePart") then
-			v.CanCollide = false
-		end
+		if v:IsA("BasePart") then v.CanCollide = false end
 	end
 	
 	newHrp.CFrame = hrp.CFrame
-	task.wait(0.1)
-	newHrp.Transparency = 1
 	
-	local syncConn
-	syncConn = RunService.Stepped:Connect(function()
-		if not char.Parent or not hrp.Parent or not newHrp.Parent then
-			if syncConn then syncConn:Disconnect() end
-			return
-		end
+	-- Sincronización de movimiento
+	local syncConn = RunService.Stepped:Connect(function()
+		if not char.Parent or not hrp.Parent or not newHrp.Parent then return end
 		newHrp.CFrame = hrp.CFrame
 	end)
+	table.insert(charConnections, syncConn)
 	
-	local function monitorLastLife()
-		while char and char.Parent do
+	-- Loop de LastLife
+	local isMonitoring = true
+	task.spawn(function()
+		while isMonitoring and customCharacterActive do
 			local lastLifeActive = isLastLife()
 			local brokenFolder = mdl:FindFirstChild("Broken")
 			local circularFolder = mdl:FindFirstChild("Circular")
 
-			if lastLifeActive then
-				if brokenFolder then
-					for _, part in ipairs(brokenFolder:GetDescendants()) do
-						if part:IsA("BasePart") then
-							part.Transparency = 0
-						end
-					end
-				end
-				if circularFolder then
-					for _, part in ipairs(circularFolder:GetDescendants()) do
-						if part:IsA("BasePart") then
-							part.Transparency = 1
-						end
-					end
-				end
-			else
-				if brokenFolder then
-					for _, part in ipairs(brokenFolder:GetDescendants()) do
-						if part:IsA("BasePart") then
-							part.Transparency = 1
-						end
-					end
-				end
-				if circularFolder then
-					for _, part in ipairs(circularFolder:GetDescendants()) do
-						if part:IsA("BasePart") then
-							part.Transparency = 0
-						end
-					end
+			if brokenFolder then
+				for _, part in ipairs(brokenFolder:GetDescendants()) do
+					if part:IsA("BasePart") then part.Transparency = lastLifeActive and 0 or 1 end
 				end
 			end
-
+			if circularFolder then
+				for _, part in ipairs(circularFolder:GetDescendants()) do
+					if part:IsA("BasePart") then part.Transparency = lastLifeActive and 1 or 0 end
+				end
+			end
 			task.wait(0.5)
 		end
-	end
-
-	task.spawn(monitorLastLife)
+	end)
+	
+	-- Guardamos una pseudo-conexión para detener el loop de LastLife al limpiar
+	table.insert(charConnections, {
+		Disconnect = function() isMonitoring = false end
+	})
 end
 
+-- ==========================================
+-- BUCLE PRINCIPAL DE ESTADO
+-- ==========================================
 task.spawn(function()
 	while true do
-		local playersFolder = workspace:FindFirstChild("Players")
-		if playersFolder then
-			local playerFolder = playersFolder:FindFirstChild(player.Name)
+		local isKolossos = checkIfKolossos()
+		
+		if isKolossos then
+			if not customCharacterActive and character then
+				applyCustomModel(character)
+			end
+			
+			-- Mantener partes originales ocultas por si el juego intenta forzarlas a ser visibles
+			local playerFolder = getPlayerModel()
 			if playerFolder then
 				local defaultFolder = playerFolder:FindFirstChild("Default")
 				if defaultFolder then
@@ -256,16 +304,19 @@ task.spawn(function()
 					if hrpDefault and hrpDefault:IsA("BasePart") then hrpDefault.Transparency = 1 end
 				end
 			end
+		else
+			-- Si dejamos de usar a Kolossos y el modelo custom está activo, lo removemos
+			if customCharacterActive then
+				removeCustomModel()
+			end
 		end
+		
 		task.wait(0.1)
 	end
 end)
 
-if character then
-	setupCharacter(character)
-end
-
 player.CharacterAdded:Connect(function(newChar)
 	character = newChar
-	setupCharacter(newChar)
+	-- No llamamos applyCustomModel directamente aquí, el bucle principal se encargará de evaluarlo.
 end)
+
